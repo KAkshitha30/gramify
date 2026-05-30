@@ -2,16 +2,18 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import ThemeToggle from './ThemeToggle';
+import { useAppTranslation } from '@/lib/useAppTranslation';
 import LanguageSwitcher from './LanguageSwitcher';
+import ThemeToggle from './ThemeToggle';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { t } = useAppTranslation();
 
   const links = [
-    { name: 'Dashboard', href: '/dashboard', emoji: '📊' },
-    { name: 'Battle Arena', href: '/battle-arena', emoji: '⚔️' },
-    { name: 'AI Tutor', href: '/ai-tutor', emoji: '🤖' },
+    { name: 'Dashboard', href: '/dashboard', emoji: '📊', key: 'dashboard' },
+    { name: 'Battle Arena', href: '/battle-arena', emoji: '⚔️', key: 'battle_arena' },
+    { name: 'AI Tutor', href: '/ai-tutor', emoji: '🤖', key: 'ai_tutor' },
   ];
 
   return (
@@ -41,7 +43,7 @@ export default function Navbar() {
                   }`}
                 >
                   <span>{link.emoji}</span>
-                  <span>{link.name}</span>
+                  <span>{t(`nav.${link.key}`, link.name)}</span>
                 </Link>
               );
             })}

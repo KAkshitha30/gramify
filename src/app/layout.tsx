@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Gramify - Interactive Grammar Learning",
-  description: "Empowering rural education with gamified learning. Learn, compete, and grow together!",
+  title: "Gramify - Smart Learning Platform",
+  description: "Empowering education with gamified learning. Learn, compete, and grow together!",
 };
 
 export default function RootLayout({

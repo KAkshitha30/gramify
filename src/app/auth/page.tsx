@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store';
 import { useRouter } from 'next/navigation';
+import { useAppTranslation } from '@/lib/useAppTranslation';
 
 const AVATARS = [
   { emoji: '🦊', label: 'Fox' },
@@ -47,6 +48,7 @@ const SUBJECTS = [
 export default function AuthPage() {
   const router = useRouter();
   const { setXP, setStreak } = useStore();
+  const { t } = useAppTranslation();
 
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signup');
   const [step, setStep] = useState<1 | 2>(1);
@@ -88,10 +90,34 @@ export default function AuthPage() {
       return;
     }
 
+    // Try signing up on Supabase and save metadata (role, interests, etc.)
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            avatar: selectedAvatar,
+            role: selectedRole,
+            interests: selectedSubjects
+          }
+        }
+      });
+
+      if (error) {
+        alert(`Supabase Signup: ${error.message}. Registering user locally instead!`);
+      } else {
+        console.log("Registered in Supabase:", data);
+      }
+    } catch (err) {
+      console.error("Supabase connection issue:", err);
+    }
+
     setXP(100); // 100 bonus XP for signing up!
     setStreak(1);
     
-    // Save details to localStorage or state to simulate local login
+    // Save details to localStorage to synchronize
     if (typeof window !== 'undefined') {
       localStorage.setItem('user_name', name);
       localStorage.setItem('user_avatar', selectedAvatar);
@@ -104,23 +130,55 @@ export default function AuthPage() {
     router.push('/dashboard');
   };
 
-  const handleSignInSubmit = (e: React.FormEvent) => {
+  const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!signInEmail || !signInPassword) {
       alert('Please enter your email and password.');
       return;
     }
-    // Simulation sign-in
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('user_name', signInEmail.split('@')[0]);
-      localStorage.setItem('user_avatar', '🦁');
-      localStorage.setItem('user_role', 'Engineering Student');
-      localStorage.setItem('user_interests', JSON.stringify(['🤖 AI & Machine Learning', '🌐 Web Development']));
-      localStorage.setItem('is_logged_in', 'true');
+
+    try {
+      // Sign in on Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: signInEmail,
+        password: signInPassword
+      });
+
+      if (error) {
+        alert(`Sign In: ${error.message}. Logging you in using local fallback.`);
+        // Fallback simulated sign-in
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user_name', signInEmail.split('@')[0]);
+          localStorage.setItem('user_avatar', '🦁');
+          localStorage.setItem('user_role', 'Engineering Student');
+          localStorage.setItem('user_interests', JSON.stringify(['🤖 AI & Machine Learning', '🌐 Web Development']));
+          localStorage.setItem('is_logged_in', 'true');
+        }
+      } else if (data.user) {
+        const meta = data.user.user_metadata || {};
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user_name', meta.name || signInEmail.split('@')[0]);
+          localStorage.setItem('user_avatar', meta.avatar || '🦁');
+          localStorage.setItem('user_role', meta.role || 'Engineering Student');
+          localStorage.setItem('user_interests', JSON.stringify(meta.interests || ['🤖 AI & Machine Learning', '🌐 Web Development']));
+          localStorage.setItem('is_logged_in', 'true');
+        }
+        alert('Logged in successfully! Welcome back! 👋');
+      }
+    } catch (err) {
+      console.error(err);
+      // Fallback
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user_name', signInEmail.split('@')[0]);
+        localStorage.setItem('user_avatar', '🦁');
+        localStorage.setItem('user_role', 'Engineering Student');
+        localStorage.setItem('user_interests', JSON.stringify(['🤖 AI & Machine Learning', '🌐 Web Development']));
+        localStorage.setItem('is_logged_in', 'true');
+      }
     }
+
     setXP(240);
     setStreak(4);
-    alert('Logged in successfully! Welcome back! 👋');
     router.push('/dashboard');
   };
 
@@ -164,7 +222,7 @@ export default function AuthPage() {
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
-            👋 Sign In
+            👋 {t('auth.welcome_back', 'Sign In')}
           </button>
           <button
             onClick={() => setActiveTab('signup')}
@@ -174,7 +232,7 @@ export default function AuthPage() {
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
-            🚀 Sign Up
+            🚀 {t('auth.create_account', 'Sign Up')}
           </button>
         </div>
 
@@ -184,14 +242,14 @@ export default function AuthPage() {
             {step === 1 ? (
               <form onSubmit={handleSignUpSubmit} className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-bold">Create your account</h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Step 1 of 2 — Basic details</p>
+                  <h2 className="text-2xl font-bold">{t('auth.create_account', 'Create your account')}</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('auth.step_1', 'Step 1 of 2 — Basic details')}</p>
                 </div>
 
                 {/* Avatar selection grid */}
                 <div className="space-y-3">
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                    PICK AVATAR
+                    {t('auth.pick_avatar', 'PICK AVATAR')}
                   </label>
                   <div className="grid grid-cols-6 gap-3">
                     {AVATARS.map((avatar) => (
@@ -213,11 +271,11 @@ export default function AuthPage() {
 
                 {/* Name */}
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">Your name</label>
+                  <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.your_name', 'Your name')}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Enter your name"
+                    placeholder={t('auth.name_placeholder', 'Enter your name')}
                     value={name}
                     onChange={e => setName(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
@@ -226,11 +284,11 @@ export default function AuthPage() {
 
                 {/* Email */}
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">Email Address</label>
+                  <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.email_label', 'Email Address')}</label>
                   <input
                     type="email"
                     required
-                    placeholder="you@example.com"
+                    placeholder={t('auth.email_placeholder', 'you@example.com')}
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
@@ -239,7 +297,7 @@ export default function AuthPage() {
 
                 {/* Password */}
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">Password</label>
+                  <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.password_label', 'Password')}</label>
                   <input
                     type="password"
                     required
@@ -255,26 +313,26 @@ export default function AuthPage() {
                     type="submit"
                     className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 hover:shadow-xl transition-all transform hover:-translate-y-0.5"
                   >
-                    Next: Your Interests →
+                    {t('auth.next_interests', 'Next: Your Interests →')}
                   </button>
                 </div>
               </form>
             ) : (
-              /* Step 2 Onboarding (Matching exactly user requested screenshot) */
+              /* Step 2 Onboarding */
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                    Almost there, {name}! <span className="text-3xl">{selectedAvatar}</span>
+                    {t('auth.almost_there', 'Almost there, {{name}}!').replace('{{name}}', name)} <span className="text-3xl">{selectedAvatar}</span>
                   </h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                    Step 2 of 2 — What are you learning?
+                    {t('auth.step_2', 'Step 2 of 2 — What are you learning?')}
                   </p>
                 </div>
 
                 {/* Section 1 - I AM A... */}
                 <div className="space-y-3">
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                    I AM A...
+                    {t('auth.i_am_a', 'I AM A...')}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {ROLES.map((role) => {
@@ -300,7 +358,7 @@ export default function AuthPage() {
                 {/* Section 2 - I WANT TO LEARN... */}
                 <div className="space-y-3">
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                    I WANT TO LEARN... (PICK 1+)
+                    {t('auth.i_want_to_learn', 'I WANT TO LEARN... (PICK 1+)')}
                   </label>
                   <div className="flex flex-wrap gap-2.5">
                     {SUBJECTS.map((subject) => {
@@ -330,14 +388,14 @@ export default function AuthPage() {
                     onClick={() => setStep(1)}
                     className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 font-bold rounded-2xl transition-all"
                   >
-                    ← Back
+                    {t('auth.back', '← Back')}
                   </button>
                   <button
                     type="button"
                     onClick={handleFinalSignUp}
                     className="flex-[2] py-4 bg-[#854d31] hover:bg-[#6c3e27] text-white font-bold rounded-2xl shadow-lg shadow-[#854d31]/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-center"
                   >
-                    🚀 Start Learning!
+                    {t('auth.start_learning', '🚀 Start Learning!')}
                   </button>
                 </div>
               </div>
@@ -347,17 +405,17 @@ export default function AuthPage() {
           /* Sign In Form */
           <form onSubmit={handleSignInSubmit} className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold">Welcome back!</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Sign in with email and password or magic link</p>
+              <h2 className="text-2xl font-bold">{t('auth.welcome_back', 'Welcome back!')}</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('auth.signin_sub', 'Sign in with email and password or magic link')}</p>
             </div>
 
             {/* Email */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">Email Address</label>
+              <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.email_label', 'Email Address')}</label>
               <input
                 type="email"
                 required
-                placeholder="you@example.com"
+                placeholder={t('auth.email_placeholder', 'you@example.com')}
                 value={signInEmail}
                 onChange={e => setSignInEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
@@ -366,7 +424,7 @@ export default function AuthPage() {
 
             {/* Password */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">Password</label>
+              <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.password_label', 'Password')}</label>
               <input
                 type="password"
                 required
@@ -383,13 +441,13 @@ export default function AuthPage() {
                 onClick={handleMagicLink}
                 className="flex-1 py-4 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold rounded-2xl transition"
               >
-                🪄 Magic Link
+                {t('auth.magic_link', '🪄 Magic Link')}
               </button>
               <button
                 type="submit"
                 className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 hover:shadow-xl transition transform hover:-translate-y-0.5"
               >
-                Sign In 🔒
+                {t('auth.signin_btn', 'Sign In 🔒')}
               </button>
             </div>
           </form>

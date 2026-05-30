@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '@/store';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
+import { useAppTranslation } from '@/lib/useAppTranslation';
 
 interface LeaderboardUser {
   name: string;
@@ -29,7 +31,6 @@ const INITIAL_LEADERBOARD: LeaderboardUser[] = [
   { rank: 5, name: 'Rohan Singh', xp: 1200, avatar: '🐯', level: 6 }
 ];
 
-// Mapping of selected subjects to realistic, high-quality learning tracks
 const SUBJECT_MAP: Record<string, QuestTopic[]> = {
   '🤖 AI & Machine Learning': [
     { id: 'neural_nets', name: 'Neural Networks Foundations 🧠', count: '8 Lessons', xpReward: 120, progress: 40, color: 'border-l-indigo-500 hover:border-indigo-500' },
@@ -75,6 +76,8 @@ const SUBJECT_MAP: Record<string, QuestTopic[]> = {
 
 export default function DashboardPage() {
   const { xp, streak, setXP, setStreak } = useStore();
+  const { t } = useAppTranslation();
+  
   const [userName, setUserName] = useState('Explorer');
   const [userAvatar, setUserAvatar] = useState('🎓');
   const [userRole, setUserRole] = useState('Class 6–8 Student');
@@ -83,43 +86,78 @@ export default function DashboardPage() {
   const [dynamicTopics, setDynamicTopics] = useState<QuestTopic[]>([]);
 
   useEffect(() => {
-    // Load local storage simulation data
-    if (typeof window !== 'undefined') {
-      const storedName = localStorage.getItem('user_name');
-      const storedAvatar = localStorage.getItem('user_avatar');
-      const storedRole = localStorage.getItem('user_role');
-      const storedInterests = localStorage.getItem('user_interests');
-      
-      if (storedName) setUserName(storedName);
-      if (storedAvatar) setUserAvatar(storedAvatar);
-      if (storedRole) setUserRole(storedRole);
-      
-      let parsedInterests: string[] = [];
-      if (storedInterests) {
-        try {
-          parsedInterests = JSON.parse(storedInterests);
-          setInterests(parsedInterests);
-        } catch {
-          // ignore parsing error
+    const syncUserProfile = async () => {
+      let activeName = 'Explorer';
+      let activeAvatar = '🎓';
+      let activeRole = 'Class 6–8 Student';
+      let activeInterests: string[] = [];
+
+      // 1. Pull user data from Supabase Auth
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.user_metadata) {
+          const meta = user.user_metadata;
+          if (meta.name) activeName = meta.name;
+          if (meta.avatar) activeAvatar = meta.avatar;
+          if (meta.role) activeRole = meta.role;
+          if (meta.interests && Array.isArray(meta.interests)) {
+            activeInterests = meta.interests;
+          }
+          
+          // Sync with local storage
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('user_name', activeName);
+            localStorage.setItem('user_avatar', activeAvatar);
+            localStorage.setItem('user_role', activeRole);
+            localStorage.setItem('user_interests', JSON.stringify(activeInterests));
+            localStorage.setItem('is_logged_in', 'true');
+          }
+        } else {
+          // 2. Local storage fallback if no Supabase user session
+          if (typeof window !== 'undefined') {
+            const storedName = localStorage.getItem('user_name');
+            const storedAvatar = localStorage.getItem('user_avatar');
+            const storedRole = localStorage.getItem('user_role');
+            const storedInterests = localStorage.getItem('user_interests');
+            
+            if (storedName) activeName = storedName;
+            if (storedAvatar) activeAvatar = storedAvatar;
+            if (storedRole) activeRole = storedRole;
+            
+            if (storedInterests) {
+              try {
+                activeInterests = JSON.parse(storedInterests);
+              } catch {
+                // ignore
+              }
+            }
+          }
         }
+      } catch (err) {
+        console.error("Failed to query Supabase, fallback to localStorage:", err);
       }
+
+      setUserName(activeName);
+      setUserAvatar(activeAvatar);
+      setUserRole(activeRole);
+      
+      // If no valid topics are chosen or user hasn't completed onboarding, fall back to Web Dev and AI
+      if (activeInterests.length === 0) {
+        activeInterests = ['🌐 Web Development', '🤖 AI & Machine Learning'];
+      }
+      setInterests(activeInterests);
 
       // Generate dynamic content based on selected interests
       const topics: QuestTopic[] = [];
-      parsedInterests.forEach(interest => {
+      activeInterests.forEach(interest => {
         if (SUBJECT_MAP[interest]) {
           topics.push(...SUBJECT_MAP[interest]);
         }
       });
-
-      // If no valid topics are chosen or user hasn't completed onboarding, fall back to Web Dev and AI
-      if (topics.length === 0) {
-        topics.push(...SUBJECT_MAP['🌐 Web Development']);
-        topics.push(...SUBJECT_MAP['🤖 AI & Machine Learning']);
-        setInterests(['🌐 Web Development', '🤖 AI & Machine Learning']);
-      }
       setDynamicTopics(topics);
-    }
+    };
+
+    syncUserProfile();
 
     // Initialize state metrics if empty
     if (xp === 0) setXP(120);
@@ -142,7 +180,7 @@ export default function DashboardPage() {
       return t;
     }));
     
-    alert(`Quest completed! +${questXp} XP gained & Streak increased! 🚀`);
+    alert(t('dash.quest_completed', 'Quest completed! +{{xp}} XP gained & Streak increased! 🚀').replace('{{xp}}', questXp.toString()));
   };
 
   const level = Math.floor(xp / 100) + 1;
@@ -160,9 +198,11 @@ export default function DashboardPage() {
             {userAvatar}
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Namaste, {userName}! 👋</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+              {t('dash.namaste', 'Namaste, {{name}}! 👋').replace('{{name}}', userName)}
+            </h1>
             <p className="text-indigo-100 mt-1 sm:mt-2 text-sm sm:text-base max-w-md font-medium">
-              Registered as <span className="underline font-bold text-white">{userRole}</span>. Practice daily, earn XP, and climb the leaderboard!
+              {t('dash.registered_as', 'Registered as')} <span className="underline font-bold text-white">{userRole}</span>. Practice daily, earn XP, and climb the leaderboard!
             </p>
             {interests.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3 justify-center sm:justify-start">
@@ -178,9 +218,9 @@ export default function DashboardPage() {
 
         {/* Level badge */}
         <div className="px-6 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex flex-col items-center">
-          <span className="text-xs font-semibold tracking-wider text-indigo-200 uppercase">Current Status</span>
-          <span className="text-3xl font-black mt-1">Level {level}</span>
-          <span className="text-xs text-indigo-100 font-medium mt-1">Syntax Master 🛡️</span>
+          <span className="text-xs font-semibold tracking-wider text-indigo-200 uppercase">{t('dash.current_status', 'Current Status')}</span>
+          <span className="text-3xl font-black mt-1">{t('dash.level', 'Level')} {level}</span>
+          <span className="text-xs text-indigo-100 font-medium mt-1">{t('dash.syntax_master', 'Smart Learner 🛡️')}</span>
         </div>
       </section>
 
@@ -197,7 +237,7 @@ export default function DashboardPage() {
             <div className="bg-white dark:bg-[#111827] border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between transition-colors duration-300">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wide">Total Experience</h3>
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wide">{t('dash.total_xp', 'Total Experience')}</h3>
                   <span className="text-4xl font-black text-slate-800 dark:text-slate-100 tracking-tight mt-1 block">{xp} XP</span>
                 </div>
                 <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl flex items-center justify-center text-xl">
@@ -206,7 +246,7 @@ export default function DashboardPage() {
               </div>
               <div className="mt-6 space-y-1.5">
                 <div className="flex justify-between text-xs font-semibold">
-                  <span>Level progress</span>
+                  <span>{t('dash.level_progress', 'Level progress')}</span>
                   <span className="text-emerald-600 dark:text-emerald-400">{xpInCurrentLevel}%</span>
                 </div>
                 <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
@@ -215,7 +255,7 @@ export default function DashboardPage() {
                     className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
                   />
                 </div>
-                <span className="text-[10px] text-slate-400 block font-medium">100 XP required to reach next level</span>
+                <span className="text-[10px] text-slate-400 block font-medium">{t('dash.xp_required', '100 XP required to reach next level')}</span>
               </div>
             </div>
 
@@ -223,8 +263,8 @@ export default function DashboardPage() {
             <div className="bg-white dark:bg-[#111827] border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between transition-colors duration-300">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wide">Daily Streak</h3>
-                  <span className="text-4xl font-black text-slate-800 dark:text-slate-100 tracking-tight mt-1 block">{streak} Days</span>
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wide">{t('dash.daily_streak', 'Daily Streak')}</h3>
+                  <span className="text-4xl font-black text-slate-800 dark:text-slate-100 tracking-tight mt-1 block">{streak} {t('dash.days', 'Days')}</span>
                 </div>
                 <div className="w-10 h-10 bg-rose-50 dark:bg-rose-950/40 rounded-xl flex items-center justify-center text-xl animate-bounce">
                   🔥
@@ -232,8 +272,8 @@ export default function DashboardPage() {
               </div>
               <p className="mt-6 text-xs font-semibold text-slate-500 dark:text-slate-400">
                 {streak > 2 
-                  ? 'Outstanding! Keep completing active quests to maintain this momentum!' 
-                  : 'Great start! Practice daily to protect your flame streak.'
+                  ? t('dash.streak_great', 'Outstanding! Keep completing active quests to maintain this momentum!')
+                  : t('dash.streak_start', 'Great start! Practice daily to protect your flame streak.')
                 }
               </p>
             </div>
@@ -242,9 +282,9 @@ export default function DashboardPage() {
           {/* Dynamic Subject Quests Path Section */}
           <section className="bg-white dark:bg-[#111827] border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm transition-colors duration-300">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">Active Learning Path 📚</h2>
+              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">{t('dash.active_path', 'Active Learning Path 📚')}</h2>
               <Link href="/battle-arena" className="text-xs font-bold text-[#6366f1] dark:text-indigo-400 hover:underline">
-                Enter Arena →
+                {t('dash.enter_arena', 'Enter Arena →')}
               </Link>
             </div>
 
@@ -256,7 +296,9 @@ export default function DashboardPage() {
                 >
                   <div>
                     <h3 className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100 leading-snug">{topic.name}</h3>
-                    <p className="text-xs text-slate-400 font-semibold mt-1">{topic.count} • Gain +{topic.xpReward} XP</p>
+                    <p className="text-xs text-slate-400 font-semibold mt-1">
+                      {topic.count} • {t('dash.xp_gained', 'Gain +{{xp}} XP').replace('{{xp}}', topic.xpReward.toString())}
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -264,12 +306,12 @@ export default function DashboardPage() {
                       <div style={{ width: `${topic.progress}%` }} className="h-full bg-[#6366f1] rounded-full transition-all duration-300" />
                     </div>
                     <div className="flex justify-between items-center text-xs font-semibold">
-                      <span className="text-slate-400">{topic.progress}% complete</span>
+                      <span className="text-slate-400">{topic.progress}% {t('dash.complete', 'complete')}</span>
                       <button
                         onClick={() => handleQuestCompletion(topic.xpReward, topic.id)}
                         className="px-3 py-1 bg-[#6366f1] hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold shadow-md shadow-indigo-600/10 transition-transform active:scale-95 cursor-pointer"
                       >
-                        Start Quest
+                        {t('dash.start_quest', 'Start Quest')}
                       </button>
                     </div>
                   </div>
@@ -282,9 +324,9 @@ export default function DashboardPage() {
         {/* Right 1 Col: Leaderboard */}
         <section className="bg-white dark:bg-[#111827] border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm h-fit transition-colors duration-300">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">Leaderboard 🏆</h2>
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">{t('leaderboard', 'Leaderboard 🏆')}</h2>
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg">
-              Live updates
+              {t('dash.live_updates', 'Live updates')}
             </span>
           </div>
 
@@ -305,13 +347,13 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight">{user.name}</h4>
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase">Level {user.level}</span>
+                    <span className="text-[10px] text-slate-400 font-semibold uppercase">{t('dash.level', 'Level')} {user.level}</span>
                   </div>
                 </div>
 
                 <div className="text-right">
                   <span className="font-extrabold text-sm block text-slate-700 dark:text-slate-200">{user.xp}</span>
-                  <span className="text-[9px] font-bold text-slate-400 tracking-wide uppercase">XP Points</span>
+                  <span className="text-[9px] font-bold text-slate-400 tracking-wide uppercase">{t('dash.xp_points', 'XP Points')}</span>
                 </div>
               </div>
             ))}
@@ -319,7 +361,7 @@ export default function DashboardPage() {
 
           <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Ranked among top learners in rural classrooms. Keep mastering concepts to climb ranks!
+              {t('dash.ranking_footer', 'Ranked among top learners. Keep mastering concepts to climb ranks!')}
             </p>
           </div>
         </section>

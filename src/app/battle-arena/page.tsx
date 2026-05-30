@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/store';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
+import { useAppTranslation } from '@/lib/useAppTranslation';
 
 interface Question {
   text: string;
@@ -11,7 +13,7 @@ interface Question {
   explanation: string;
 }
 
-// Complete multi-subject question database matching onboarding domains
+// Local high-quality database as fallback
 const SUBJECT_QUESTIONS: Record<string, Question[]> = {
   '🤖 AI & Machine Learning': [
     {
@@ -240,35 +242,30 @@ const SUBJECT_QUESTIONS: Record<string, Question[]> = {
   ]
 };
 
-// Generic grammar fallback questions
 const DEFAULT_QUESTIONS: Question[] = [
   {
-    text: "The packet of chips _____ (is / are) kept in the drawer. ✍️",
-    options: ["is", "are", "both", "none"],
+    text: "What is the speed of light in a vacuum? ⚡",
+    options: ["3 * 10^8 m/s", "3 * 10^6 m/s", "1.5 * 10^8 m/s", "343 m/s"],
     answer: 0,
-    explanation: "'The packet' is the singular subject, so it takes 'is'."
+    explanation: "Light travels at approximately 300,000 kilometers per second, commonly written as 3 * 10^8 m/s."
   },
   {
-    text: "Select the sentence with correct verb agreement: 📚",
-    options: [
-      "Neither the teacher nor the students is happy.",
-      "Neither the teacher nor the students are happy.",
-      "Neither the teacher nor the students were happy.",
-      "None of the above"
-    ],
+    text: "Which Python library is primarily used for high-performance data manipulation and analysis? 📊",
+    options: ["NumPy", "Pandas", "Matplotlib", "Scikit-Learn"],
     answer: 1,
-    explanation: "When subjects are joined by 'neither/nor', the verb agrees with the closer subject ('students', plural, so 'are')."
+    explanation: "Pandas provides the DataFrame structure and is the standard tool for data manipulation and analysis in Python."
   },
   {
-    text: "Every boy and girl _____ (was / were) given a custom award. 🏅",
-    options: ["was", "were", "both", "none"],
+    text: "What is Newton's Second Law of Motion? ☄️",
+    options: ["F = m * a", "For every action, there is an equal reaction", "Objects in motion remain in motion", "E = m * c^2"],
     answer: 0,
-    explanation: "When subjects are preceded by 'every' or 'each', they take a singular verb ('was')."
+    explanation: "Newton's Second Law states that force equals mass times acceleration (F = ma)."
   }
 ];
 
 export default function BattleArenaPage() {
   const { xp, setXP } = useStore();
+  const { t } = useAppTranslation();
 
   const [state, setState] = useState<'idle' | 'searching' | 'battle' | 'finished'>('idle');
   const [opponent, setOpponent] = useState({ name: '', avatar: '🤖', xp: 0 });
@@ -280,40 +277,129 @@ export default function BattleArenaPage() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState(10);
   const [feedback, setFeedback] = useState('');
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
 
-  // Dynamically load tailored questions on component mounting
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedInterests = localStorage.getItem('user_interests');
-      if (storedInterests) {
+  // Generate dynamic questions using OpenRouter
+  const fetchAIQuestions = async (subjects: string[]) => {
+    const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+    if (!apiKey) {
+      console.warn("OpenRouter API key is missing. Using local questions database.");
+      return loadLocalFallbackQuestions(subjects);
+    }
+
+    const prompt = `Generate exactly 3 multiple-choice questions for the following subjects/domains: ${subjects.join(', ')}.
+The questions must be educational and suitable for students.
+Return ONLY a valid JSON array of objects. Do not include markdown code block styling like \`\`\`json.
+Each object must have the following fields:
+- "text": string (the question text)
+- "options": array of 4 strings (the options)
+- "answer": number (0 to 3, the index of the correct option)
+- "explanation": string (brief explanation of the correct answer)
+
+Example:
+[
+  {
+    "text": "What is overfitting in ML?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "answer": 0,
+    "explanation": "Explanation here..."
+  }
+]`;
+
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+          'X-Title': 'Gramify Smart Learning'
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) throw new Error("Empty content returned from AI");
+
+      const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanContent) as Question[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setActiveQuestions(parsed);
+        return;
+      }
+      throw new Error("Parsed content is not a valid question array");
+    } catch (err) {
+      console.error("OpenRouter questions generation failed, falling back:", err);
+      loadLocalFallbackQuestions(subjects);
+    }
+  };
+
+  const loadLocalFallbackQuestions = (subjects: string[]) => {
+    const customQuestions: Question[] = [];
+    subjects.forEach(interest => {
+      if (SUBJECT_QUESTIONS[interest]) {
+        customQuestions.push(...SUBJECT_QUESTIONS[interest]);
+      }
+    });
+
+    if (customQuestions.length > 0) {
+      const shuffled = customQuestions.sort(() => 0.5 - Math.random());
+      setActiveQuestions(shuffled.slice(0, 3));
+    } else {
+      setActiveQuestions(DEFAULT_QUESTIONS);
+    }
+  };
+
+  const handleStartSearching = async () => {
+    setState('searching');
+    setIsLoadingQuestions(true);
+
+    let chosenSubjects: string[] = [];
+
+    // Pull chosen subjects from Supabase
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.user_metadata?.interests) {
+        chosenSubjects = user.user_metadata.interests;
+      }
+    } catch (err) {
+      console.error("Failed to fetch user subjects from Supabase:", err);
+    }
+
+    // Fallback to local storage
+    if (chosenSubjects.length === 0 && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('user_interests');
+      if (stored) {
         try {
-          const interests: string[] = JSON.parse(storedInterests);
-          const customQuestions: Question[] = [];
-          
-          interests.forEach(interest => {
-            if (SUBJECT_QUESTIONS[interest]) {
-              customQuestions.push(...SUBJECT_QUESTIONS[interest]);
-            }
-          });
-
-          if (customQuestions.length > 0) {
-            // Shuffle and choose up to 3 questions for a diverse and exciting challenge
-            const shuffled = customQuestions.sort(() => 0.5 - Math.random());
-            setActiveQuestions(shuffled.slice(0, 3));
-          } else {
-            setActiveQuestions(DEFAULT_QUESTIONS);
-          }
+          chosenSubjects = JSON.parse(stored);
         } catch {
-          setActiveQuestions(DEFAULT_QUESTIONS);
+          // ignore
         }
       }
     }
-  }, [state]); // Reset or reload questions when state shifts back to idle/search
+
+    if (chosenSubjects.length === 0) {
+      chosenSubjects = ['🌐 Web Development', '🤖 AI & Machine Learning'];
+    }
+
+    // Pre-generate questions using OpenRouter during search animation
+    await fetchAIQuestions(chosenSubjects);
+    setIsLoadingQuestions(false);
+  };
 
   // Simulating finding an opponent
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (state === 'searching') {
+    if (state === 'searching' && !isLoadingQuestions) {
       timer = setTimeout(() => {
         setOpponent({
           name: ['Rahul Sen', 'Sneha Roy', 'Dev Yadav', 'Kavita Das'][Math.floor(Math.random() * 4)],
@@ -330,7 +416,7 @@ export default function BattleArenaPage() {
       }, 2500);
     }
     return () => clearTimeout(timer);
-  }, [state]);
+  }, [state, isLoadingQuestions]);
 
   // Battle countdown timer simulation
   useEffect(() => {
@@ -395,16 +481,16 @@ export default function BattleArenaPage() {
             ⚔️
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Arena Battle Arena</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight">{t('arena.title', 'Gramify Battle Arena')}</h1>
             <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">
-              Enter multiplayer battles! Solve multi-subject quiz questions faster than your opponent to win matches and secure +50 XP!
+              {t('arena.subtitle', 'Enter multiplayer battles! Solve quiz questions faster than your opponent to win matches and secure +50 XP!')}
             </p>
           </div>
           <button
-            onClick={() => setState('searching')}
+            onClick={handleStartSearching}
             className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 hover:shadow-xl transition-all transform hover:-translate-y-0.5 cursor-pointer"
           >
-            Find Opponent 🔍
+            {t('arena.find_opponent', 'Find Opponent 🔍')}
           </button>
         </div>
       )}
@@ -418,8 +504,8 @@ export default function BattleArenaPage() {
             </div>
           </div>
           <div>
-            <h2 className="text-2xl font-bold">Matching Competitors...</h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-1.5 text-sm">Searching among rural digital classrooms...</p>
+            <h2 className="text-2xl font-bold">{t('arena.matching', 'Matching Competitors...')}</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1.5 text-sm">{t('arena.searching', 'Searching among digital classrooms...')}</p>
           </div>
           <div className="h-1 w-32 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mx-auto">
             <div className="h-full bg-indigo-600 rounded-full animate-progress-load w-1/2" />
@@ -437,16 +523,16 @@ export default function BattleArenaPage() {
               <span className="text-3xl">🎓</span>
               <div>
                 <span className="font-extrabold text-sm block">You</span>
-                <span className="text-xs font-bold text-slate-400">{userScore} Points</span>
+                <span className="text-xs font-bold text-slate-400">{userScore} {t('xp', 'Points')}</span>
               </div>
             </div>
 
             {/* Vs Badge */}
             <div className="flex flex-col items-center">
               <span className="px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs">
-                VS
+                {t('arena.vs', 'VS')}
               </span>
-              <span className="text-[10px] text-slate-400 mt-1 font-semibold">TIMER: {timeLeft}s</span>
+              <span className="text-[10px] text-slate-400 mt-1 font-semibold">{t('arena.timer', 'TIMER')}: {timeLeft}s</span>
             </div>
 
             {/* Opponent */}
@@ -454,7 +540,7 @@ export default function BattleArenaPage() {
               <span className="text-3xl">{opponent.avatar}</span>
               <div>
                 <span className="font-extrabold text-sm block">{opponent.name}</span>
-                <span className="text-xs font-bold text-slate-400">{opponentScore} Points</span>
+                <span className="text-xs font-bold text-slate-400">{opponentScore} {t('xp', 'Points')}</span>
               </div>
             </div>
           </div>
@@ -462,7 +548,7 @@ export default function BattleArenaPage() {
           {/* Question panel */}
           <div className="space-y-4">
             <span className="text-xs font-bold tracking-wide uppercase text-indigo-600 dark:text-indigo-400">
-              Question {currentQuestionIndex + 1} of {activeQuestions.length}
+              {t('arena.question', 'Question')} {currentQuestionIndex + 1} {t('arena.of', 'of')} {activeQuestions.length}
             </span>
             <h2 className="text-xl sm:text-2xl font-extrabold leading-snug">
               {activeQuestions[currentQuestionIndex].text}
@@ -511,7 +597,7 @@ export default function BattleArenaPage() {
                 onClick={handleNext}
                 className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/10 transition active:scale-98 cursor-pointer"
               >
-                {currentQuestionIndex < activeQuestions.length - 1 ? 'Next Question →' : 'Finish Battle 🏁'}
+                {currentQuestionIndex < activeQuestions.length - 1 ? t('arena.next_quest', 'Next Question →') : t('arena.finish', 'Finish Battle 🏁')}
               </button>
             </div>
           )}
@@ -525,12 +611,17 @@ export default function BattleArenaPage() {
           </div>
           <div>
             <h1 className="text-3xl font-extrabold">
-              {userScore > opponentScore ? 'You Won! 🎉' : 'Draw/Defeat! 🤝'}
+              {userScore > opponentScore ? t('arena.won', 'You Won! 🎉') : t('arena.draw_defeat', 'Draw/Defeat! 🤝')}
             </h1>
             <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">
               {userScore > opponentScore 
-                ? `Sensational battle! You scored ${userScore} points and defeated ${opponent.name}. +50 XP Reward!`
-                : `Excellent match. You scored ${userScore} points while ${opponent.name} scored ${opponentScore}. +20 XP participation reward!`
+                ? t('arena.won_desc', 'Sensational battle! You scored {{user}} points and defeated {{opp}}. +50 XP Reward!')
+                  .replace('{{user}}', userScore.toString())
+                  .replace('{{opp}}', opponent.name)
+                : t('arena.draw_desc', 'Excellent match. You scored {{user}} points while {{opp}} scored {{oppScore}}. +20 XP participation reward!')
+                  .replace('{{user}}', userScore.toString())
+                  .replace('{{opp}}', opponent.name)
+                  .replace('{{oppScore}}', opponentScore.toString())
               }
             </p>
           </div>
@@ -538,11 +629,11 @@ export default function BattleArenaPage() {
           {/* Match Score Overview */}
           <div className="grid grid-cols-2 p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold transition-colors duration-300">
             <div>
-              <span className="text-slate-400 text-xs block font-medium">YOUR SCORE</span>
+              <span className="text-slate-400 text-xs block font-medium">{t('arena.your_score', 'YOUR SCORE')}</span>
               <span className="text-2xl mt-1 block">{userScore}</span>
             </div>
             <div className="border-l border-slate-200 dark:border-slate-800">
-              <span className="text-slate-400 text-xs block font-medium">OPPONENT</span>
+              <span className="text-slate-400 text-xs block font-medium">{t('arena.opponent', 'OPPONENT')}</span>
               <span className="text-2xl mt-1 block">{opponentScore}</span>
             </div>
           </div>
@@ -552,13 +643,13 @@ export default function BattleArenaPage() {
               href="/dashboard"
               className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 font-bold rounded-2xl transition text-center"
             >
-              Dashboard 📊
+              {t('dashboard', 'Dashboard 📊')}
             </Link>
             <button
-              onClick={() => setState('searching')}
+              onClick={handleStartSearching}
               className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 transition transform hover:-translate-y-0.5 cursor-pointer"
             >
-              Play Again ⚔️
+              {t('arena.play_again', 'Play Again ⚔️')}
             </button>
           </div>
         </div>

@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '@/store';
+import { supabase } from '@/lib/supabase';
+import { useAppTranslation } from '@/lib/useAppTranslation';
 
 interface Message {
   sender: 'ai' | 'user';
@@ -9,7 +11,6 @@ interface Message {
   timestamp: Date;
 }
 
-// Map subjects to quick suggest questions for the AI tutor
 const SUGGESTION_MAP: Record<string, string> = {
   '🤖 AI & Machine Learning': 'Explain Neural Networks 🧠',
   '🌐 Web Development': 'What is an API? 🌐',
@@ -25,8 +26,11 @@ const SUGGESTION_MAP: Record<string, string> = {
 
 export default function AITutorPage() {
   const { xp, setXP } = useStore();
+  const { t } = useAppTranslation();
+
   const [userName, setUserName] = useState('Explorer');
   const [userAvatar, setUserAvatar] = useState('🎓');
+  const [userRole, setUserRole] = useState('Class 6-8 Student');
   const [interests, setInterests] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   
@@ -35,51 +39,81 @@ export default function AITutorPage() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize tutor state based on local storage onboarding preferences
+  // Initialize tutor state based on Supabase / local storage
   useEffect(() => {
-    let parsedInterests: string[] = [];
-    if (typeof window !== 'undefined') {
-      const storedName = localStorage.getItem('user_name');
-      const storedAvatar = localStorage.getItem('user_avatar');
-      const storedInterests = localStorage.getItem('user_interests');
-      
-      if (storedName) setUserName(storedName);
-      if (storedAvatar) setUserAvatar(storedAvatar);
-      
-      if (storedInterests) {
-        try {
-          parsedInterests = JSON.parse(storedInterests);
-          setInterests(parsedInterests);
-        } catch {
-          // ignore
+    const initializeTutor = async () => {
+      let activeName = 'Explorer';
+      let activeAvatar = '🎓';
+      let activeRole = 'Class 6-8 Student';
+      let activeInterests: string[] = [];
+
+      // 1. Pull user data from Supabase Auth
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.user_metadata) {
+          const meta = user.user_metadata;
+          if (meta.name) activeName = meta.name;
+          if (meta.avatar) activeAvatar = meta.avatar;
+          if (meta.role) activeRole = meta.role;
+          if (meta.interests && Array.isArray(meta.interests)) {
+            activeInterests = meta.interests;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to query user profile:", err);
+      }
+
+      // 2. Local storage fallback
+      if (activeInterests.length === 0 && typeof window !== 'undefined') {
+        const storedName = localStorage.getItem('user_name');
+        const storedAvatar = localStorage.getItem('user_avatar');
+        const storedRole = localStorage.getItem('user_role');
+        const storedInterests = localStorage.getItem('user_interests');
+        
+        if (storedName) activeName = storedName;
+        if (storedAvatar) activeAvatar = storedAvatar;
+        if (storedRole) activeRole = storedRole;
+        if (storedInterests) {
+          try {
+            activeInterests = JSON.parse(storedInterests);
+          } catch {
+            // ignore
+          }
         }
       }
-    }
 
-    if (parsedInterests.length === 0) {
-      parsedInterests = ['🌐 Web Development', '🤖 AI & Machine Learning'];
-      setInterests(parsedInterests);
-    }
-
-    // Compile customized suggest prompts based on their selected subjects
-    const chips = parsedInterests.map(interest => SUGGESTION_MAP[interest]).filter(Boolean);
-    // Add generic English grammar quiz suggestion if count is low
-    if (chips.length < 3) {
-      chips.push("Explain Subject-Verb Agreement 📖");
-      chips.push("Translate Hindi to English 🌐");
-    }
-    setSuggestions(chips);
-
-    // Initial greeting from Guru AI customized to user interests
-    const greetingText = `Namaste, ${userName}! I am Guru AI, your dedicated personal learning tutor. 🤖\n\nI noticed you are learning **${parsedInterests.join(', ')}**! I can explain complex rules, chemical reactions, algorithms, physics, or language skills bilingually in Hindi & English.\n\nSelect a quick suggestion chip below or type any question to start!`;
-    
-    setMessages([
-      {
-        sender: 'ai',
-        text: greetingText,
-        timestamp: new Date()
+      if (activeInterests.length === 0) {
+        activeInterests = ['🌐 Web Development', '🤖 AI & Machine Learning'];
       }
-    ]);
+
+      setUserName(activeName);
+      setUserAvatar(activeAvatar);
+      setUserRole(activeRole);
+      setInterests(activeInterests);
+
+      // Suggest prompts based on interests
+      const chips = activeInterests.map(interest => SUGGESTION_MAP[interest]).filter(Boolean);
+      if (chips.length < 3) {
+        chips.push("Explain what is API? 🌐");
+        chips.push("Explain Newton's Laws ☄️");
+      }
+      setSuggestions(chips);
+
+      // Initial bilingual greeting
+      const greetingText = t('tutor.welcome_msg', `Namaste, {{name}}! I am Guru AI, your dedicated personal learning tutor. 🤖\n\nI noticed you are learning **{{interests}}**! I can explain complex rules, chemical reactions, algorithms, physics, history, or language skills bilingually in Hindi & English.\n\nSelect a quick suggestion chip below or type any question to start!`)
+        .replace('{{name}}', activeName)
+        .replace('{{interests}}', activeInterests.join(', '));
+      
+      setMessages([
+        {
+          sender: 'ai',
+          text: greetingText,
+          timestamp: new Date()
+        }
+      ]);
+    };
+
+    initializeTutor();
   }, []);
 
   const scrollToBottom = () => {
@@ -90,7 +124,61 @@ export default function AITutorPage() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const handleSend = (text: string) => {
+  const fetchAIResponse = async (question: string, history: Message[]): Promise<string> => {
+    const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+    if (!apiKey) {
+      console.warn("OpenRouter API key is missing. Using local bilingually parsed templates.");
+      return "";
+    }
+
+    const formattedHistory = history.map(msg => ({
+      role: msg.sender === 'ai' ? 'assistant' : 'user',
+      content: msg.text
+    }));
+
+    const systemPrompt = `You are Guru AI, a knowledgeable, friendly, and bilingually supportive personal teacher for a student learning platform.
+The student is currently registered as a "${userRole}" and is learning: ${interests.join(', ')}.
+You must answer questions on ANY topic (science, math, history, coding, general knowledge, etc.) in detail, acting like a brilliant bilingually supportive teacher.
+Please reply bilingually or in a mix of Hindi and English (Hinglish/Hindi script where appropriate) to make complex concepts simple and engaging for students.
+Always format your response cleanly using Markdown, bold text for key terms, lists, and code blocks for programming syntax.
+Provide detailed explanations like Google or ChatGPT would. Keep your tone highly encouraging and positive!`;
+
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+          'X-Title': 'Gramify Smart Learning'
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...formattedHistory.slice(-6), // Send last 6 messages of context
+            { role: 'user', content: question }
+          ],
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const reply = data.choices?.[0]?.message?.content;
+      if (!reply) throw new Error("Empty reply from OpenRouter");
+
+      return reply;
+    } catch (err) {
+      console.error("OpenRouter query failed:", err);
+      return "";
+    }
+  };
+
+  const handleSend = async (text: string) => {
     if (!text.trim()) return;
 
     // Add user message
@@ -99,68 +187,55 @@ export default function AITutorPage() {
       text,
       timestamp: new Date()
     };
-    setMessages(prev => [...prev, userMsg]);
+    
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI response delay
-    setTimeout(() => {
-      let aiText = '';
-      let xpReward = 10;
+    // Call OpenRouter
+    const aiText = await fetchAIResponse(text, updatedMessages);
+    
+    let finalAiText = aiText;
+    let xpReward = 20;
 
+    // Fallback logic if OpenRouter fails
+    if (!finalAiText) {
       const lowerText = text.toLowerCase();
-      
-      // Multi-subject conversational intelligence parser
       if (lowerText.includes('api')) {
-        aiText = "An **API (Application Programming Interface)** allows two software applications to communicate with each other. 🌐\n\nसरल शब्दों में (In simple terms):\nयह एक रेस्टोरेंट के वेटर (waiter) की तरह है। आप (Client/Browser) टेबल पर बैठकर आर्डर देते हैं, वेटर (API) आपकी रिक्वेस्ट लेकर किचन (Server) में जाता है और वहाँ से लज़ीज़ खाना (Data) लाकर आपको परोस देता है।\n\n**Example**:\nWhen you check the weather on your phone, Google uses an Weather API to fetch live forecasts from a weather server and display it to you!";
-        xpReward = 20;
+        finalAiText = "An **API (Application Programming Interface)** allows two software applications to communicate with each other. 🌐\n\nसरल शब्दों में (In simple terms):\nयह एक रेस्टोरेंट के वेटर (waiter) की तरह है। आप (Client/Browser) टेबल पर बैठकर आर्डर देते हैं, वेटर (API) आपकी रिक्वेस्ट लेकर किचन (Server) में जाता है और वहाँ से लज़ीज़ खाना (Data) लाकर आपको परोस देता है।\n\n**Example**:\nWhen you check the weather on your phone, Google uses an Weather API to fetch live forecasts from a weather server and display it to you!";
       } else if (lowerText.includes('neural') || lowerText.includes('machine learning') || lowerText.includes('ai')) {
-        aiText = "A **Neural Network** in AI & ML is a series of algorithms that endeavors to recognize underlying relationships in a set of data through a process that mimics the way the human brain operates. 🧠\n\nसरल भाषा में:\nयह कंप्यूटर का एक काल्पनिक 'दिमाग' है जिसमें कृत्रिम न्यूरॉन्स (artificial neurons) होते हैं। यह बार-बार गलतियाँ करके सीखता है, ठीक वैसे ही जैसे एक बच्चा चलना सीखता है।\n\nइसका उपयोग इमेजेज पहचानने (image recognition) और ट्रांसलेशन (language translation) में बड़े पैमाने पर होता है!";
-        xpReward = 20;
+        finalAiText = "A **Neural Network** in AI & ML is a series of algorithms that endeavors to recognize underlying relationships in a set of data through a process that mimics the way the human brain operates. 🧠\n\nसरल भाषा में:\nयह कंप्यूटर का एक काल्पनिक 'दिमाग' है जिसमें कृत्रिम न्यूरॉन्स (artificial neurons) होते हैं। यह बार-बार गलतियाँ करके सीखता है, ठीक वैसे ही जैसे एक बच्चा चलना सीखता है।\n\nइसका उपयोग इमेजेज पहचानने (image recognition) और ट्रांसलेशन (language translation) में बड़े पैमाने पर होता है!";
       } else if (lowerText.includes('recursion')) {
-        aiText = "**Recursion** in Programming is a technique where a function calls itself directly or indirectly to solve a problem. 💻\n\nसरल भाषा में:\nजब एक कोड अपने आप को बार-बार तब तक कॉल करता है जब तक कि वह एक विशिष्ट अंत बिंदु (Base Case) पर न पहुँच जाए।\n\n**उदाहरण (Python Example)**:\n```python\ndef factorial(n):\n    if n == 1: # Base Case\n        return 1\n    return n * factorial(n - 1) # Recursive Call\n```\nWarning: Without a proper base case, recursion causes a 'Stack Overflow' error!";
-        xpReward = 20;
+        finalAiText = "**Recursion** in Programming is a technique where a function calls itself directly or indirectly to solve a problem. 💻\n\nसरल भाषा में:\nजब एक कोड अपने आप को बार-बार तब तक कॉल करता है जब तक कि वह एक विशिष्ट अंत बिंदु (Base Case) पर न पहुँच जाए।\n\n**उदाहरण (Python Example)**:\n```python\ndef factorial(n):\n    if n == 1: # Base Case\n        return 1\n    return n * factorial(n - 1) # Recursive Call\n```\nWarning: Without a proper base case, recursion causes a 'Stack Overflow' error!";
       } else if (lowerText.includes('gravity') || lowerText.includes('physics')) {
-        aiText = "**Gravity** in Physics is the fundamental force by which all things with mass or energy are brought toward one another. ☄️\n\nसरल शब्दों में:\nयह वह अदृश्य आकर्षण बल है जो हमें जमीन से बांधे रखता है और जिसके कारण पृथ्वी सूर्य के चारों ओर घूमती है।\n\n**Formula (Newton's Law)**:\n$$F = G \\frac{m_1 m_2}{r^2}$$\nजहाँ $F$ गुरुत्वाकर्षण बल है, $m_1, m_2$ दोनों वस्तुओं का द्रव्यमान (mass) हैं, और $r$ उनके बीच की दूरी है।";
-        xpReward = 20;
+        finalAiText = "**Gravity** in Physics is the fundamental force by which all things with mass or energy are brought toward one another. ☄️\n\nसरल शब्दों में:\nयह वह अदृश्य आकर्षण बल है जो हमें जमीन से बांधे रखता है और जिसके कारण पृथ्वी सूर्य के चारों ओर घूमती है।\n\n**Formula (Newton's Law)**:\n$$F = G \\frac{m_1 m_2}{r^2}$$\nजहाँ $F$ गुरुत्वाकर्षण बल है, $m_1, m_2$ दोनों वस्तुओं का द्रव्यमान (mass) हैं, और $r$ उनके बीच की दूरी है।";
       } else if (lowerText.includes('calculus') || lowerText.includes('limits') || lowerText.includes('math')) {
-        aiText = "A **Limit** in Calculus describes the behavior of a function near a specific input value, rather than exactly at that value. 🧮\n\nसरल भाषा में:\nजब हम किसी बिंदु के बहुत करीब पहुँचते हैं (लेकिन बिल्कुल उस पर नहीं), तो फलन का मान क्या होता है।\n\n**उदाहरण**:\nयदि $f(x) = x^2$, तो जैसे ही $x$ का मान $2$ के करीब जाता है, फलन $f(x)$ का मान $4$ के करीब जाएगा। इसे हम इस प्रकार लिखते हैं:\n$$\\lim_{x \\to 2} x^2 = 4$$";
-        xpReward = 20;
+        finalAiText = "A **Limit** in Calculus describes the behavior of a function near a specific input value, rather than exactly at that value. 🧮\n\nसरल भाषा में:\nजब हम किसी बिंदु के बहुत करीब पहुँचते हैं (लेकिन बिल्कुल उस पर नहीं), तो फलन का मान क्या होता है।\n\n**उदाहरण**:\nयदि $f(x) = x^2$, तो जैसे ही $x$ का मान $2$ के करीब जाता है, फलन $f(x)$ का मान $4$ के करीब जाएगा। इसे हम इस प्रकार लिखते हैं:\n$$\\lim_{x \\to 2} x^2 = 4$$";
       } else if (lowerText.includes('organic') || lowerText.includes('chemistry')) {
-        aiText = "**Organic Chemistry** is the scientific study of the structure, properties, composition, reactions, and preparation of chemical compounds containing carbon. 🧪\n\nसरल भाषा में:\nयह 'कार्बन के यौगिकों' (Carbon compounds) का विज्ञान है। पृथ्वी पर लगभग सारा जीवन कार्बनिक रसायन पर ही आधारित है (जैसे हमारा DNA, प्रोटीन, भोजन, कोयला और दवाएं।";
-        xpReward = 15;
+        finalAiText = "**Organic Chemistry** is the scientific study of the structure, properties, composition, reactions, and preparation of chemical compounds containing carbon. 🧪\n\nसरल भाषा में:\nयह 'कार्बन के यौगिकों' (Carbon compounds) का विज्ञान है। पृथ्वी पर लगभग सारा जीवन कार्बनिक रसायन पर ही आधारित है (जैसे हमारा DNA, प्रोटीन, भोजन, कोयला और दवाएं।";
       } else if (lowerText.includes('dna') || lowerText.includes('biology')) {
-        aiText = "**DNA (Deoxyribonucleic Acid)** is the hereditary material in humans and almost all other organisms. 🧬\n\nसरल शब्दों में:\nयह हमारे शरीर की 'ब्लूप्रिंट' या निर्देश पुस्तिका है। यह तय करता है कि आपकी आँखों का रंग क्या होगा, आपकी लंबाई कितनी होगी और आपका शरीर कैसे काम करेगा। इसका आकार एक घुमावदार सीढ़ी (Double Helix) की तरह होता है।";
-        xpReward = 15;
+        finalAiText = "**DNA (Deoxyribonucleic Acid)** is the hereditary material in humans and almost all other organisms. 🧬\n\nसरल शब्दों में:\nयह हमारे शरीर की 'ब्लूप्रिंट' या निर्देश पुस्तिका है। यह तय करता है कि आपकी आँखों का रंग क्या होगा, आपकी लंबाई कितनी होगी और आपका शरीर कैसे काम करेगा। इसका आकार एक घुमावदार सीढ़ी (Double Helix) की तरह होता है।";
       } else if (lowerText.includes('cryptography') || lowerText.includes('cybersecurity')) {
-        aiText = "**Cryptography** in Cybersecurity is the practice and study of techniques for secure communication in the presence of adversarial behavior. 🔑\n\nसरल भाषा में:\nअपने सीक्रेट मैसेज को एक गुप्त कोड में बदलना (Encryption) ताकि केवल वही व्यक्ति इसे पढ़ सके जिसके पास इसकी चाबी (Decryption Key) हो। इससे डेटा चोरी होने से बचता है!";
-        xpReward = 20;
+        finalAiText = "**Cryptography** in Cybersecurity is the practice and study of techniques for secure communication in the presence of adversarial behavior. 🔑\n\nसरल भाषा में:\nअपने सीक्रेट मैसेज को एक गुप्त कोड में बदलना (Encryption) ताकि केवल वही व्यक्ति इसे पढ़ सके जिसके पास इसकी चाबी (Decryption Key) हो। इससे डेटा चोरी होने से बचता है!";
       } else if (lowerText.includes('unity') || lowerText.includes('game')) {
-        aiText = "In **Unity 3D Game Development**, collision detection allows game objects to interact or crash into each other. 🎮\n\nसरल भाषा में:\nजब एक प्लेयर किसी दीवार या दुश्मन से टकराता है, तो Unity का Physics Engine (Collider & Rigidbody component) उस टक्कर को पहचानता है और खिलाड़ी को रोकने या उसकी हेल्थ कम करने का आदेश देता है!";
-        xpReward = 15;
+        finalAiText = "In **Unity 3D Game Development**, collision detection allows game objects to interact or crash into each other. 🎮\n\nसरल भाषा में:\nजब एक प्लेयर किसी दीवार या दुश्मन से टकराता है, तो Unity का Physics Engine (Collider & Rigidbody component) उस टक्कर को पहचानता है और खिलाड़ी को रोकने या उसकी हेल्थ कम करने का आदेश देता है!";
       } else if (lowerText.includes('data science')) {
-        aiText = "**Data Science** is the field of study that combines domain expertise, programming skills, and knowledge of mathematics and statistics to extract meaningful insights from data. 📊\n\nसरल भाषा में:\nकचरा डेटा में से कीमती जानकारी ढूंढना! इसके जरिए कंपनियाँ भविष्य की योजनाएँ बनाती हैं और नए प्रोडक्ट्स लॉन्च करती हैं।";
-        xpReward = 20;
-      } else if (lowerText.includes('subject-verb') || lowerText.includes('agreement')) {
-        aiText = "Subject-Verb Agreement implies that a singular subject takes a singular verb, and a plural subject takes a plural verb.\n\nउदाहरण (Example):\n1. The dog **chases** the cat. (Dog is singular -> chases)\n2. The dogs **chase** the cat. (Dogs is plural -> chase)\n\nTip: In present simple tense, singular verbs end with 's' or 'es'!";
-        xpReward = 15;
-      } else if (lowerText.includes('translate')) {
-        aiText = "वाह! Let's translate:\n\nHindi: 'मैं हर दिन अभ्यास करता हूँ'\nEnglish translation: **'I practice every single day.'** or **'I practice daily.'**\n\nRemember: 'practice' (noun/verb) matches the daily routine aspect perfectly. Keep practicing! 🌐";
-        xpReward = 15;
+        finalAiText = "**Data Science** is the field of study that combines domain expertise, programming skills, and knowledge of mathematics and statistics to extract meaningful insights from data. 📊\n\nसरल भाषा में:\nकचरा डेटा में से कीमती जानकारी ढूंढना! इसके जरिए कंपनियाँ भविष्य की योजनाएँ बनाती हैं और नए प्रोडक्ट्स लॉन्च करती हैं।";
       } else {
-        aiText = `That is an interesting question! Let's explore that topic together. 🌟\n\nSince you are registered as a learner in **${interests.join(', ')}**, I can provide deep examples, bilingually in Hindi and English.\n\nWould you like me to give you a quiz, explain a specific concept, or provide step-by-step calculations?`;
-        xpReward = 5;
+        finalAiText = `That is an interesting question! Let's explore that topic together. 🌟\n\nSince you are registered as a learner in **${interests.join(', ')}**, I can provide deep examples, bilingually in Hindi and English.\n\nWould you like me to give you a quiz, explain a specific concept, or provide step-by-step calculations?`;
+        xpReward = 10;
       }
+    }
 
-      setIsTyping(false);
-      setMessages(prev => [...prev, {
-        sender: 'ai',
-        text: aiText,
-        timestamp: new Date()
-      }]);
+    setIsTyping(false);
+    setMessages(prev => [...prev, {
+      sender: 'ai',
+      text: finalAiText,
+      timestamp: new Date()
+    }]);
 
-      setXP(xp + xpReward);
-    }, 1500);
+    setXP(xp + xpReward);
   };
 
   return (
@@ -173,14 +248,14 @@ export default function AITutorPage() {
             🤖
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Guru AI Personal Tutor</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Bilingual Subject Guide • Active (+XP for asking questions)</p>
+            <h1 className="text-xl font-bold tracking-tight">{t('tutor.title', 'Guru AI Personal Tutor')}</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t('tutor.subtitle', 'Bilingual Subject Guide • Active (+XP for asking questions)')}</p>
           </div>
         </div>
 
         <div className="text-right">
           <span className="text-xs font-semibold text-slate-400 block uppercase">Level Bonus</span>
-          <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{xp} total XP</span>
+          <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{xp} {t('tutor.bonus', 'total XP')}</span>
         </div>
       </section>
 
@@ -201,12 +276,12 @@ export default function AITutorPage() {
               >
                 {isAI && (
                   <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-lg flex-shrink-0 shadow-inner">
-                    {userAvatar === '🎓' ? '🤖' : '🤖'}
+                    🤖
                   </div>
                 )}
                 
                 <div
-                  className={`p-4 rounded-2xl text-sm leading-relaxed border whitespace-pre-line ${
+                  className={`p-4 rounded-2xl text-sm leading-relaxed border whitespace-pre-wrap ${
                     isAI
                       ? 'bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800/80 text-slate-800 dark:text-slate-100'
                       : 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/10'
@@ -228,7 +303,7 @@ export default function AITutorPage() {
                 🤖
               </div>
               <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-2xl text-sm text-slate-400 flex items-center gap-1.5 shadow-sm">
-                <span>Guru is thinking</span>
+                <span>{t('tutor.thinking', 'Guru is thinking')}</span>
                 <span className="flex gap-0.5 mt-1">
                   <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                   <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -243,7 +318,7 @@ export default function AITutorPage() {
         {/* Suggestion Chips */}
         {messages.length === 1 && !isTyping && (
           <div className="space-y-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Suggested Quests</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{t('tutor.suggested', 'Suggested Quests')}</span>
             <div className="flex flex-wrap gap-2">
               {suggestions.map((suggestion, i) => (
                 <button
@@ -263,7 +338,7 @@ export default function AITutorPage() {
         <div className="flex gap-2.5 items-center border-t border-slate-100 dark:border-slate-800/80 pt-4">
           <input
             type="text"
-            placeholder="Ask about AI, Web Dev, Programming, Physics, Math, Biology, Cybersecurity..."
+            placeholder={t('tutor.placeholder', 'Ask about AI, Web Dev, Programming, Physics, Math, Biology, Cybersecurity, History...')}
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend(inputValue)}
@@ -274,7 +349,7 @@ export default function AITutorPage() {
             onClick={() => handleSend(inputValue)}
             className="px-5 py-3.5 bg-[#6366f1] hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 hover:shadow-xl transition active:scale-95 flex items-center justify-center cursor-pointer"
           >
-            Send ⚡
+            {t('tutor.send', 'Send ⚡')}
           </button>
         </div>
       </div>

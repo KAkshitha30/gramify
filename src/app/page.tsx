@@ -1,26 +1,29 @@
 "use client";
 
 import Link from 'next/link';
+import { useAppTranslation } from '@/lib/useAppTranslation';
 
 export default function Home() {
+  const { t } = useAppTranslation();
+
   const features = [
     {
-      title: 'Gamified Battle Arena',
-      description: 'Challenge your friends or online players to real-time, fast-paced grammar matches. Win battles and climb the ranks!',
+      title: t('home.feat1_title', 'Gamified Battle Arena'),
+      description: t('home.feat1_desc', 'Challenge peers to real-time, fast-paced quiz matches. Win battles and climb the ranks!'),
       icon: '⚔️',
       color: 'from-amber-500 to-orange-600',
       link: '/battle-arena',
     },
     {
-      title: 'AI Smart Tutor',
-      description: 'Chat with Guru AI, your dedicated language guide. Ask grammar questions, practice translations, and learn in Hindi & English.',
+      title: t('home.feat2_title', 'AI Smart Tutor'),
+      description: t('home.feat2_desc', 'Chat with Guru AI, your dedicated personal tutor. Ask questions on any topic in English & Hindi.'),
       icon: '🤖',
       color: 'from-indigo-500 to-purple-600',
       link: '/ai-tutor',
     },
     {
-      title: 'Daily Quests & Streaks',
-      description: 'Build robust habits with personalized daily lessons. Accumulate XP points, level up, and keep your flame streak burning!',
+      title: t('home.feat3_title', 'Daily Quests & Streaks'),
+      description: t('home.feat3_desc', 'Build learning habits. Accumulate XP points, level up, and keep your flame streak burning!'),
       icon: '🔥',
       color: 'from-rose-500 to-pink-600',
       link: '/dashboard',
@@ -35,15 +38,15 @@ export default function Home() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] sm:w-[500px] sm:h-[500px] bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-[80px] sm:blur-[120px] -z-10 pointer-events-none" />
 
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400 font-semibold text-xs sm:text-sm tracking-wide shadow-sm animate-pulse">
-          🚀 Next-Gen Grammar Learning
+          {t('home.badge', '🚀 Next-Gen Smart Learning')}
         </div>
 
         <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight max-w-4xl leading-tight">
-          Master Grammar the <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400">Fun Way</span>
+          {t('home.title', 'Master Learning the Smart Way')}
         </h1>
 
         <p className="text-lg sm:text-2xl text-slate-600 dark:text-slate-300 max-w-3xl leading-relaxed">
-          Empowering rural and local student education with gamified battles, bite-sized quests, and smart bilingual AI language tutoring.
+          {t('home.subtitle', 'Empowering students with gamified battles, bite-sized quests, and smart bilingual AI tutoring.')}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full sm:w-auto">
@@ -51,13 +54,13 @@ export default function Home() {
             href="/auth"
             className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-2xl font-bold shadow-lg shadow-indigo-500/20 dark:shadow-indigo-950/40 hover:shadow-xl transform hover:-translate-y-0.5 transition-all text-center"
           >
-            Get Started Free 👋
+            {t('home.get_started', 'Get Started Free 👋')}
           </Link>
           <Link
             href="/dashboard"
             className="px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-2xl font-bold shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all text-center"
           >
-            Enter Dashboard 📊
+            {t('home.enter_dashboard', 'Enter Dashboard 📊')}
           </Link>
         </div>
       </section>
@@ -65,8 +68,8 @@ export default function Home() {
       {/* Features Grid */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full z-10">
         <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold">Unleash Your Grammar Potential</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Everything you need to learn, compete, and excel</p>
+          <h2 className="text-3xl sm:text-4xl font-bold">{t('home.section_title', 'Unleash Your Learning Potential')}</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">{t('home.section_subtitle', 'Everything you need to learn, compete, and excel')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -91,7 +94,7 @@ export default function Home() {
               </p>
 
               <div className="mt-6 flex items-center text-sm font-semibold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                Try Now <span className="ml-1.5 transition-transform group-hover:translate-x-1">→</span>
+                {t('home.try_now', 'Try Now')} <span className="ml-1.5 transition-transform group-hover:translate-x-1">→</span>
               </div>
             </Link>
           ))}
@@ -100,7 +103,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="w-full text-center py-8 text-sm text-slate-500 dark:text-slate-500 border-t border-slate-200/50 dark:border-slate-800/30 bg-white/40 dark:bg-slate-950/40 backdrop-blur-sm">
-        <p>© {new Date().getFullYear()} Gramify. Dedicated to bringing premium gamified education to everyone.</p>
+        <p>{t('home.footer', `© ${new Date().getFullYear()} Gramify. Dedicated to bringing premium gamified education to everyone.`).replace('{{year}}', new Date().getFullYear().toString())}</p>
       </footer>
     </div>
   );
