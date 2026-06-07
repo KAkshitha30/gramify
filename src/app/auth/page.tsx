@@ -90,30 +90,6 @@ export default function AuthPage() {
       return;
     }
 
-    // Try signing up on Supabase and save metadata (role, interests, etc.)
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-            avatar: selectedAvatar,
-            role: selectedRole,
-            interests: selectedSubjects
-          }
-        }
-      });
-
-      if (error) {
-        alert(`Supabase Signup: ${error.message}. Registering user locally instead!`);
-      } else {
-        console.log("Registered in Supabase:", data);
-      }
-    } catch (err) {
-      console.error("Supabase connection issue:", err);
-    }
-
     setXP(100); // 100 bonus XP for signing up!
     setStreak(1);
     
@@ -137,46 +113,16 @@ export default function AuthPage() {
       return;
     }
 
-    try {
-      // Sign in on Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: signInEmail,
-        password: signInPassword
-      });
-
-      if (error) {
-        alert(`Sign In: ${error.message}. Logging you in using local fallback.`);
-        // Fallback simulated sign-in
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('user_name', signInEmail.split('@')[0]);
-          localStorage.setItem('user_avatar', '🦁');
-          localStorage.setItem('user_role', 'Engineering Student');
-          localStorage.setItem('user_interests', JSON.stringify(['🤖 AI & Machine Learning', '🌐 Web Development']));
-          localStorage.setItem('is_logged_in', 'true');
-        }
-      } else if (data.user) {
-        const meta = data.user.user_metadata || {};
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('user_name', meta.name || signInEmail.split('@')[0]);
-          localStorage.setItem('user_avatar', meta.avatar || '🦁');
-          localStorage.setItem('user_role', meta.role || 'Engineering Student');
-          localStorage.setItem('user_interests', JSON.stringify(meta.interests || ['🤖 AI & Machine Learning', '🌐 Web Development']));
-          localStorage.setItem('is_logged_in', 'true');
-        }
-        alert('Logged in successfully! Welcome back! 👋');
-      }
-    } catch (err) {
-      console.error(err);
-      // Fallback
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user_name', signInEmail.split('@')[0]);
-        localStorage.setItem('user_avatar', '🦁');
-        localStorage.setItem('user_role', 'Engineering Student');
-        localStorage.setItem('user_interests', JSON.stringify(['🤖 AI & Machine Learning', '🌐 Web Development']));
-        localStorage.setItem('is_logged_in', 'true');
-      }
+    // Fully offline mock sign-in
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user_name', signInEmail.split('@')[0]);
+      localStorage.setItem('user_avatar', '🦁');
+      localStorage.setItem('user_role', 'Engineering Student');
+      localStorage.setItem('user_interests', JSON.stringify(['🤖 AI & Machine Learning', '🌐 Web Development']));
+      localStorage.setItem('is_logged_in', 'true');
     }
 
+    alert('Logged in successfully! Welcome back! 👋');
     setXP(240);
     setStreak(4);
     router.push('/dashboard');
@@ -193,14 +139,18 @@ export default function AuthPage() {
       return;
     }
     
-    const { error } = await supabase.auth.signInWithOtp({
-      email: emailToUse,
-    });
-    if (error) {
-      alert(`Error sending link: ${error.message}`);
-    } else {
-      alert('Magic link has been sent to your email! 🪄 Check your inbox.');
+    // Fully offline mock magic link
+    alert(`Magic link has been simulated! Welcome ${emailToUse.split('@')[0]}! 🪄`);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user_name', emailToUse.split('@')[0]);
+      localStorage.setItem('user_avatar', '🦉');
+      localStorage.setItem('user_role', 'Self Learner / Working Professional');
+      localStorage.setItem('user_interests', JSON.stringify(['💻 Programming', '🌐 Web Development']));
+      localStorage.setItem('is_logged_in', 'true');
     }
+    setXP(150);
+    setStreak(3);
+    router.push('/dashboard');
   };
 
   return (
