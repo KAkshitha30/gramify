@@ -1,17 +1,21 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAppTranslation } from '@/lib/useAppTranslation';
+import { useStore } from '@/store';
 import LanguageSwitcher from './LanguageSwitcher';
 import ThemeToggle from './ThemeToggle';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { t } = useAppTranslation();
+  const { setXP, setStreak } = useStore();
   const [userName, setUserName] = useState('');
   const [userAvatar, setUserAvatar] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const syncProfile = () => {
     if (typeof window !== 'undefined') {
@@ -38,6 +42,33 @@ export default function Navbar() {
     };
   }, [pathname]); // Re-sync when navigation occurs to update instantly on login/signup
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const closeDropdown = () => setDropdownOpen(false);
+    window.addEventListener('click', closeDropdown);
+    return () => {
+      window.removeEventListener('click', closeDropdown);
+    };
+  }, [dropdownOpen]);
+
+  const toggleDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDropdownOpen(prev => !prev);
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+      setUserName('');
+      setUserAvatar('');
+      setXP(0);
+      setStreak(0);
+      setDropdownOpen(false);
+      router.push('/auth');
+    }
+  };
+
   const links = [
     { name: 'Dashboard', href: '/dashboard', emoji: '📊', key: 'dashboard' },
     { name: 'Lessons', href: '/lessons', emoji: '📚', key: 'lessons' },
@@ -60,7 +91,7 @@ export default function Navbar() {
           {/* Navigation Links - Center */}
           <div className="hidden md:flex items-center gap-6">
             {links.map((link) => {
-              const isActive = pathname === link.href;
+               const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.href}
@@ -84,9 +115,33 @@ export default function Navbar() {
             <ThemeToggle />
             
             {userName && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 rounded-xl animate-fadeIn">
-                <span className="text-xl">{userAvatar}</span>
-                <span className="hidden sm:inline text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[100px] truncate">{userName}</span>
+              <div className="relative">
+                <button
+                  onClick={toggleDropdown}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl animate-fadeIn transition duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <span className="text-xl">{userAvatar}</span>
+                  <span className="hidden sm:inline text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[100px] truncate">{userName}</span>
+                  <span className="text-[10px] text-slate-400">▼</span>
+                </button>
+                
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl py-2 z-50 animate-fadeIn">
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      👤 {t('nav.profile', 'Profile')}
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors cursor-pointer border-t border-slate-100 dark:border-slate-850"
+                    >
+                      🚪 {t('nav.logout', 'Logout')}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
             
@@ -102,3 +157,4 @@ export default function Navbar() {
     </nav>
   );
 }
+

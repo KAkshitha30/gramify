@@ -2,9 +2,21 @@
 
 import Link from 'next/link';
 import { useAppTranslation } from '@/lib/useAppTranslation';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function Home() {
   const { t } = useAppTranslation();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
+      if (isLoggedIn) {
+        router.push('/dashboard');
+      }
+    }
+  }, [router]);
 
   const features = [
     {
