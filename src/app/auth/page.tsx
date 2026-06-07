@@ -52,6 +52,7 @@ export default function AuthPage() {
 
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signup');
   const [step, setStep] = useState<1 | 2>(1);
+  const [signupSuccessMessage, setSignupSuccessMessage] = useState('');
 
   // Sign up fields
   const [selectedAvatar, setSelectedAvatar] = useState('🦊');
@@ -90,7 +91,6 @@ export default function AuthPage() {
       return;
     }
 
-    // Try signing up on Supabase and save metadata (role, interests, etc.)
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -106,28 +106,33 @@ export default function AuthPage() {
       });
 
       if (error) {
-        alert(`Supabase Signup: ${error.message}. Registering user locally instead!`);
-      } else {
-        console.log("Registered in Supabase:", data);
+        alert(`Signup Error: ${error.message}`);
+        return;
       }
-    } catch (err) {
-      console.error("Supabase connection issue:", err);
-    }
 
-    setXP(100); // 100 bonus XP for signing up!
-    setStreak(1);
-    
-    // Save details to localStorage to synchronize
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('user_name', name);
-      localStorage.setItem('user_avatar', selectedAvatar);
-      localStorage.setItem('user_role', selectedRole);
-      localStorage.setItem('user_interests', JSON.stringify(selectedSubjects));
-      localStorage.setItem('is_logged_in', 'true');
-    }
+      setXP(100); // 100 bonus XP for signing up!
+      setStreak(1);
 
-    alert(`Account created successfully! Welcome ${name}! 🎉`);
-    router.push('/dashboard');
+      if (data.session) {
+        const meta = data.user?.user_metadata || {};
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user_name', meta.name || name);
+          localStorage.setItem('user_avatar', meta.avatar || selectedAvatar);
+          localStorage.setItem('user_role', meta.role || selectedRole);
+          localStorage.setItem('user_interests', JSON.stringify(meta.interests || selectedSubjects));
+          localStorage.setItem('is_logged_in', 'true');
+        }
+        alert(`Account created successfully! Welcome ${name}! 🎉`);
+        router.push('/dashboard');
+      } else {
+        setSignupSuccessMessage("Verification email sent! Please check your email to confirm your account, then sign in below.");
+        alert("Verification email sent! Please confirm your email before signing in.");
+        setActiveTab('signin');
+        setStep(1);
+      }
+    } catch (err: any) {
+      alert(`Signup failed: ${err.message || err}`);
+    }
   };
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
@@ -138,22 +143,13 @@ export default function AuthPage() {
     }
 
     try {
-      // Sign in on Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email: signInEmail,
         password: signInPassword
       });
 
       if (error) {
-        alert(`Sign In: ${error.message}. Logging you in using local fallback.`);
-        // Fallback simulated sign-in
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('user_name', signInEmail.split('@')[0]);
-          localStorage.setItem('user_avatar', '🦁');
-          localStorage.setItem('user_role', 'Engineering Student');
-          localStorage.setItem('user_interests', JSON.stringify(['🤖 AI & Machine Learning', '🌐 Web Development']));
-          localStorage.setItem('is_logged_in', 'true');
-        }
+        alert(`Sign In Error: ${error.message}`);
       } else if (data.user) {
         const meta = data.user.user_metadata || {};
         if (typeof window !== 'undefined') {
@@ -164,22 +160,11 @@ export default function AuthPage() {
           localStorage.setItem('is_logged_in', 'true');
         }
         alert('Logged in successfully! Welcome back! 👋');
+        router.push('/dashboard');
       }
-    } catch (err) {
-      console.error(err);
-      // Fallback
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user_name', signInEmail.split('@')[0]);
-        localStorage.setItem('user_avatar', '🦁');
-        localStorage.setItem('user_role', 'Engineering Student');
-        localStorage.setItem('user_interests', JSON.stringify(['🤖 AI & Machine Learning', '🌐 Web Development']));
-        localStorage.setItem('is_logged_in', 'true');
-      }
+    } catch (err: any) {
+      alert(`Sign in failed: ${err.message || err}`);
     }
-
-    setXP(240);
-    setStreak(4);
-    router.push('/dashboard');
   };
 
   const handleMagicLink = async () => {
@@ -235,6 +220,13 @@ export default function AuthPage() {
             🚀 {t('auth.create_account', 'Sign Up')}
           </button>
         </div>
+
+        {signupSuccessMessage && (
+          <div className="mb-6 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-850 text-emerald-800 dark:text-emerald-400 text-sm font-semibold flex items-start gap-2.5 shadow-sm transition-all animate-fadeIn">
+            <span className="text-lg">✉️</span>
+            <span>{signupSuccessMessage}</span>
+          </div>
+        )}
 
         {activeTab === 'signup' ? (
           /* Sign Up Forms */
