@@ -1,44 +1,42 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useAppTranslation } from '@/lib/useAppTranslation';
 import LanguageSwitcher from './LanguageSwitcher';
 import ThemeToggle from './ThemeToggle';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { t } = useAppTranslation();
-  const [user, setUser] = useState<any>(null);
+  const [userName, setUserName] = useState('');
+  const [userAvatar, setUserAvatar] = useState('');
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      if (typeof window !== 'undefined') {
-        localStorage.clear();
+  const syncProfile = () => {
+    if (typeof window !== 'undefined') {
+      const storedName = localStorage.getItem('user_name');
+      const storedAvatar = localStorage.getItem('user_avatar');
+      const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
+      if (isLoggedIn && storedName) {
+        setUserName(storedName);
+        setUserAvatar(storedAvatar || '🎓');
+      } else {
+        setUserName('');
+        setUserAvatar('');
       }
-      router.push('/auth');
-    } catch (err) {
-      console.error("Sign out error:", err);
     }
   };
+
+  useEffect(() => {
+    syncProfile();
+    
+    // Listen for storage events (if changed in another tab)
+    window.addEventListener('storage', syncProfile);
+    return () => {
+      window.removeEventListener('storage', syncProfile);
+    };
+  }, [pathname]); // Re-sync when navigation occurs to update instantly on login/signup
 
   const links = [
     { name: 'Dashboard', href: '/dashboard', emoji: '📊', key: 'dashboard' },
@@ -84,13 +82,11 @@ export default function Navbar() {
             <LanguageSwitcher />
             <ThemeToggle />
             
-            {user && (
-              <button
-                onClick={handleSignOut}
-                className="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 border border-rose-100 dark:border-rose-900/30 hover:scale-102 hover:shadow-sm transition-all duration-200 cursor-pointer animate-fadeIn"
-              >
-                Sign Out 🚪
-              </button>
+            {userName && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 rounded-xl animate-fadeIn">
+                <span className="text-xl">{userAvatar}</span>
+                <span className="hidden sm:inline text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[100px] truncate">{userName}</span>
+              </div>
             )}
             
             {/* Mobile Nav Button */}
