@@ -33,44 +33,44 @@ const INITIAL_LEADERBOARD: LeaderboardUser[] = [
 
 const SUBJECT_MAP: Record<string, QuestTopic[]> = {
   '🤖 AI & Machine Learning': [
-    { id: 'neural_nets', name: 'Neural Networks Foundations 🧠', count: '8 Lessons', xpReward: 120, progress: 40, color: 'border-l-indigo-500 hover:border-indigo-500' },
-    { id: 'ml_models', name: 'Supervised vs Unsupervised ML 📉', count: '6 Lessons', xpReward: 90, progress: 10, color: 'border-l-purple-500 hover:border-purple-500' }
+    { id: 'neural_nets', name: 'Neural Networks Foundations 🧠', count: '8 Lessons', xpReward: 120, progress: 0, color: 'border-l-indigo-500 hover:border-indigo-500' },
+    { id: 'ml_models', name: 'Supervised vs Unsupervised ML 📉', count: '6 Lessons', xpReward: 90, progress: 0, color: 'border-l-purple-500 hover:border-purple-500' }
   ],
   '🌐 Web Development': [
-    { id: 'html_css', name: 'HTML5 & CSS3 Premium Styling 🎨', count: '10 Lessons', xpReward: 100, progress: 70, color: 'border-l-indigo-500 hover:border-indigo-500' },
-    { id: 'react_core', name: 'ReactJS Interactive Components ⚛️', count: '12 Lessons', xpReward: 150, progress: 30, color: 'border-l-sky-500 hover:border-sky-500' }
+    { id: 'html_css', name: 'HTML5 & CSS3 Premium Styling 🎨', count: '10 Lessons', xpReward: 100, progress: 0, color: 'border-l-indigo-500 hover:border-indigo-500' },
+    { id: 'react_core', name: 'ReactJS Interactive Components ⚛️', count: '12 Lessons', xpReward: 150, progress: 0, color: 'border-l-sky-500 hover:border-sky-500' }
   ],
   '📊 Data Science': [
-    { id: 'pandas_ds', name: 'Pandas & NumPy Data Analysis 🐼', count: '9 Lessons', xpReward: 110, progress: 50, color: 'border-l-emerald-500 hover:border-emerald-500' },
-    { id: 'data_viz', name: 'Data Visualization with Seaborn 📊', count: '7 Lessons', xpReward: 80, progress: 25, color: 'border-l-teal-500 hover:border-teal-500' }
+    { id: 'pandas_ds', name: 'Pandas & NumPy Data Analysis 🐼', count: '9 Lessons', xpReward: 110, progress: 0, color: 'border-l-emerald-500 hover:border-emerald-500' },
+    { id: 'data_viz', name: 'Data Visualization with Seaborn 📊', count: '7 Lessons', xpReward: 80, progress: 0, color: 'border-l-teal-500 hover:border-teal-500' }
   ],
   '💻 Programming': [
-    { id: 'python_algos', name: 'Python Algorithms & Structures 🐍', count: '15 Lessons', xpReward: 180, progress: 60, color: 'border-l-amber-500 hover:border-amber-500' },
-    { id: 'git_mastery', name: 'Git Version Control Mastery 🐙', count: '5 Lessons', xpReward: 70, progress: 90, color: 'border-l-orange-500 hover:border-orange-500' }
+    { id: 'python_algos', name: 'Python Algorithms & Structures 🐍', count: '15 Lessons', xpReward: 180, progress: 0, color: 'border-l-amber-500 hover:border-amber-500' },
+    { id: 'git_mastery', name: 'Git Version Control Mastery 🐙', count: '5 Lessons', xpReward: 70, progress: 0, color: 'border-l-orange-500 hover:border-orange-500' }
   ],
   '⚡ Physics': [
-    { id: 'kinematics', name: 'Classical Mechanics & Kinematics ☄️', count: '12 Lessons', xpReward: 140, progress: 45, color: 'border-l-amber-500 hover:border-amber-500' },
-    { id: 'electromagnetism', name: 'Electromagnetism & Wave Optics 🧲', count: '10 Lessons', xpReward: 120, progress: 15, color: 'border-l-yellow-500 hover:border-yellow-500' }
+    { id: 'kinematics', name: 'Classical Mechanics & Kinematics ☄️', count: '12 Lessons', xpReward: 140, progress: 0, color: 'border-l-amber-500 hover:border-amber-500' },
+    { id: 'electromagnetism', name: 'Electromagnetism & Wave Optics 🧲', count: '10 Lessons', xpReward: 120, progress: 0, color: 'border-l-yellow-500 hover:border-yellow-500' }
   ],
   '🧮 Mathematics': [
-    { id: 'calculus', name: 'Calculus: Limits & Derivatives 📈', count: '14 Lessons', xpReward: 160, progress: 55, color: 'border-l-rose-500 hover:border-rose-500' },
-    { id: 'linear_alg', name: 'Linear Algebra & Vector Spaces 📐', count: '11 Lessons', xpReward: 130, progress: 20, color: 'border-l-pink-500 hover:border-pink-500' }
+    { id: 'calculus', name: 'Calculus: Limits & Derivatives 📈', count: '14 Lessons', xpReward: 160, progress: 0, color: 'border-l-rose-500 hover:border-rose-500' },
+    { id: 'linear_alg', name: 'Linear Algebra & Vector Spaces 📐', count: '11 Lessons', xpReward: 130, progress: 0, color: 'border-l-pink-500 hover:border-pink-500' }
   ],
   '🧪 Chemistry': [
-    { id: 'organic_chem', name: 'Organic Chemistry Reactions 🧪', count: '10 Lessons', xpReward: 120, progress: 35, color: 'border-l-emerald-500 hover:border-emerald-500' },
-    { id: 'thermo_equilibrium', name: 'Thermodynamics & Equilibrium 🌡️', count: '8 Lessons', xpReward: 90, progress: 60, color: 'border-l-green-500 hover:border-green-500' }
+    { id: 'organic_chem', name: 'Organic Chemistry Reactions 🧪', count: '10 Lessons', xpReward: 120, progress: 0, color: 'border-l-emerald-500 hover:border-emerald-500' },
+    { id: 'thermo_equilibrium', name: 'Thermodynamics & Equilibrium 🌡️', count: '8 Lessons', xpReward: 90, progress: 0, color: 'border-l-green-500 hover:border-green-500' }
   ],
   '🧬 Biology': [
-    { id: 'cellular_resp', name: 'Cellular Respiration & Genetics 🧬', count: '11 Lessons', xpReward: 130, progress: 50, color: 'border-l-emerald-500 hover:border-emerald-500' },
-    { id: 'human_anatomy', name: 'Human Anatomy & Systems 🫁', count: '13 Lessons', xpReward: 150, progress: 10, color: 'border-l-rose-500 hover:border-rose-500' }
+    { id: 'cellular_resp', name: 'Cellular Respiration & Genetics 🧬', count: '11 Lessons', xpReward: 130, progress: 0, color: 'border-l-emerald-500 hover:border-emerald-500' },
+    { id: 'human_anatomy', name: 'Human Anatomy & Systems 🫁', count: '13 Lessons', xpReward: 150, progress: 0, color: 'border-l-rose-500 hover:border-rose-500' }
   ],
   '🎮 Game Development': [
-    { id: 'unity_intro', name: 'Unity 3D Physics Engine Intro 🎮', count: '12 Lessons', xpReward: 140, progress: 30, color: 'border-l-purple-500 hover:border-purple-500' },
-    { id: 'csharp_scripting', name: 'C# Scripting for Games ⚔️', count: '10 Lessons', xpReward: 120, progress: 75, color: 'border-l-violet-500 hover:border-violet-500' }
+    { id: 'unity_intro', name: 'Unity 3D Physics Engine Intro 🎮', count: '12 Lessons', xpReward: 140, progress: 0, color: 'border-l-purple-500 hover:border-purple-500' },
+    { id: 'csharp_scripting', name: 'C# Scripting for Games ⚔️', count: '10 Lessons', xpReward: 120, progress: 0, color: 'border-l-violet-500 hover:border-violet-500' }
   ],
   '🔒 Cybersecurity': [
-    { id: 'crypto_keys', name: 'Cryptography & Hashing Keys 🔑', count: '10 Lessons', xpReward: 130, progress: 40, color: 'border-l-slate-500 hover:border-slate-500' },
-    { id: 'network_audit', name: 'Network Vulnerability Auditing 🛡️', count: '8 Lessons', xpReward: 100, progress: 15, color: 'border-l-cyan-500 hover:border-cyan-500' }
+    { id: 'crypto_keys', name: 'Cryptography & Hashing Keys 🔑', count: '10 Lessons', xpReward: 130, progress: 0, color: 'border-l-slate-500 hover:border-slate-500' },
+    { id: 'network_audit', name: 'Network Vulnerability Auditing 🛡️', count: '8 Lessons', xpReward: 100, progress: 0, color: 'border-l-cyan-500 hover:border-cyan-500' }
   ]
 };
 
@@ -86,72 +86,66 @@ export default function DashboardPage() {
   const [dynamicTopics, setDynamicTopics] = useState<QuestTopic[]>([]);
 
   useEffect(() => {
-    const syncUserProfile = async () => {
+    const syncUserProfile = () => {
       let activeName = 'Explorer';
       let activeAvatar = '🎓';
       let activeRole = 'Class 6–8 Student';
       let activeInterests: string[] = [];
 
-      // 1. Pull user data from Supabase Auth
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && user.user_metadata) {
-          const meta = user.user_metadata;
-          if (meta.name) activeName = meta.name;
-          if (meta.avatar) activeAvatar = meta.avatar;
-          if (meta.role) activeRole = meta.role;
-          if (meta.interests && Array.isArray(meta.interests)) {
-            activeInterests = meta.interests;
-          }
+      if (typeof window !== 'undefined') {
+        const storedName = localStorage.getItem('user_name');
+        const usersRaw = localStorage.getItem('registered_users') || '[]';
+        let users = [];
+        try {
+          users = JSON.parse(usersRaw);
+        } catch (e) {
+          users = [];
+        }
+
+        const foundUser = users.find((u: any) => u && u.name === storedName);
+
+        if (foundUser) {
+          activeName = foundUser.name;
+          activeAvatar = foundUser.avatar || '🎓';
+          activeRole = foundUser.role || 'Class 6–8 Student';
+          activeInterests = foundUser.interests || [];
           
-          // Sync with local storage
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('user_name', activeName);
-            localStorage.setItem('user_avatar', activeAvatar);
-            localStorage.setItem('user_role', activeRole);
-            localStorage.setItem('user_interests', JSON.stringify(activeInterests));
-            localStorage.setItem('is_logged_in', 'true');
-          }
+          localStorage.setItem('user_name', activeName);
+          localStorage.setItem('user_avatar', activeAvatar);
+          localStorage.setItem('user_role', activeRole);
+          localStorage.setItem('user_interests', JSON.stringify(activeInterests));
+          
+          setXP(foundUser.xp || 0);
+          setStreak(foundUser.streak || 0);
         } else {
-          // 2. Local storage fallback if no Supabase user session
-          if (typeof window !== 'undefined') {
-            const storedName = localStorage.getItem('user_name');
-            const storedAvatar = localStorage.getItem('user_avatar');
-            const storedRole = localStorage.getItem('user_role');
-            const storedInterests = localStorage.getItem('user_interests');
-            
-            if (storedName) activeName = storedName;
-            if (storedAvatar) activeAvatar = storedAvatar;
-            if (storedRole) activeRole = storedRole;
-            
-            if (storedInterests) {
-              try {
-                activeInterests = JSON.parse(storedInterests);
-              } catch {
-                // ignore
-              }
-            }
+          const storedAvatar = localStorage.getItem('user_avatar');
+          const storedRole = localStorage.getItem('user_role');
+          const storedInterests = localStorage.getItem('user_interests');
+          
+          if (storedName) activeName = storedName;
+          if (storedAvatar) activeAvatar = storedAvatar;
+          if (storedRole) activeRole = storedRole;
+          if (storedInterests) {
+            try {
+              activeInterests = JSON.parse(storedInterests);
+            } catch (err) {}
           }
         }
-      } catch (err) {
-        console.error("Failed to query Supabase, fallback to localStorage:", err);
       }
 
       setUserName(activeName);
       setUserAvatar(activeAvatar);
       setUserRole(activeRole);
       
-      // If no valid topics are chosen or user hasn't completed onboarding, fall back to Web Dev and AI
       if (activeInterests.length === 0) {
         activeInterests = ['🌐 Web Development', '🤖 AI & Machine Learning'];
       }
       setInterests(activeInterests);
 
-      // Generate dynamic content based on selected interests
       const topics: QuestTopic[] = [];
       activeInterests.forEach(interest => {
         if (SUBJECT_MAP[interest]) {
-          topics.push(...SUBJECT_MAP[interest]);
+          topics.push(...SUBJECT_MAP[interest].map(topic => ({ ...topic, progress: 0 })));
         }
       });
       setDynamicTopics(topics);
@@ -159,19 +153,33 @@ export default function DashboardPage() {
 
     syncUserProfile();
 
-    // Initialize state metrics if empty
-    if (xp === 0) setXP(120);
-    if (streak === 0) setStreak(2);
-
-    // Dynamic leaderboard compilation
     setLeaderboard(INITIAL_LEADERBOARD);
   }, []);
 
   const handleQuestCompletion = (questXp: number, topicId: string) => {
-    setXP(xp + questXp);
-    setStreak(streak + 1);
+    const nextXp = xp + questXp;
+    const nextStreak = streak + 1;
+    setXP(nextXp);
+    setStreak(nextStreak);
     
-    // Smoothly update visual progress bar on dashboard for active element
+    if (typeof window !== 'undefined') {
+      const activeName = localStorage.getItem('user_name');
+      const usersRaw = localStorage.getItem('registered_users') || '[]';
+      let users = [];
+      try {
+        users = JSON.parse(usersRaw);
+      } catch (e) {
+        users = [];
+      }
+      users = users.map((u: any) => {
+        if (u && u.name === activeName) {
+          return { ...u, xp: nextXp, streak: nextStreak };
+        }
+        return u;
+      });
+      localStorage.setItem('registered_users', JSON.stringify(users));
+    }
+    
     setDynamicTopics(prev => prev.map(t => {
       if (t.id === topicId) {
         const nextProgress = Math.min(t.progress + 15, 100);

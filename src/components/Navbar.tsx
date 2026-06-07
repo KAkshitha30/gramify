@@ -40,6 +40,7 @@ export default function Navbar() {
 
   const links = [
     { name: 'Dashboard', href: '/dashboard', emoji: '📊', key: 'dashboard' },
+    { name: 'Lessons', href: '/lessons', emoji: '📚', key: 'lessons' },
     { name: 'Battle Arena', href: '/battle-arena', emoji: '⚔️', key: 'battle_arena' },
     { name: 'AI Tutor', href: '/ai-tutor', emoji: '🤖', key: 'ai_tutor' },
   ];

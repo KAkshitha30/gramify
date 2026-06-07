@@ -90,19 +90,47 @@ export default function AuthPage() {
       return;
     }
 
-    setXP(100); // 100 bonus XP for signing up!
-    setStreak(1);
-    
-    // Save details to localStorage to synchronize
+    const userNameClean = name.trim();
+
+    // 1. Get and update registered users list in localStorage
     if (typeof window !== 'undefined') {
-      localStorage.setItem('user_name', name);
+      const usersRaw = localStorage.getItem('registered_users') || '[]';
+      let users = [];
+      try {
+        users = JSON.parse(usersRaw);
+      } catch (e) {
+        users = [];
+      }
+
+      // Filter out duplicate usernames
+      users = users.filter((u: any) => u && u.name && u.name.toLowerCase() !== userNameClean.toLowerCase());
+
+      const newUser = {
+        name: userNameClean,
+        avatar: selectedAvatar,
+        role: selectedRole,
+        interests: selectedSubjects,
+        xp: 0,
+        streak: 0,
+        completedLessons: []
+      };
+
+      users.push(newUser);
+      localStorage.setItem('registered_users', JSON.stringify(users));
+
+      // 2. Set current active session
+      localStorage.setItem('user_name', userNameClean);
       localStorage.setItem('user_avatar', selectedAvatar);
       localStorage.setItem('user_role', selectedRole);
       localStorage.setItem('user_interests', JSON.stringify(selectedSubjects));
       localStorage.setItem('is_logged_in', 'true');
+
+      // 3. Reset Zustand store for a clean fresh start (0 XP, 0 streak)
+      setXP(0);
+      setStreak(0);
     }
 
-    alert(`Account created successfully! Welcome ${name}! 🎉`);
+    alert(`Account created successfully! Welcome ${userNameClean}! 🎉`);
     router.push('/dashboard');
   };
 
@@ -113,18 +141,41 @@ export default function AuthPage() {
       return;
     }
 
-    // Fully offline mock sign-in
+    const nameToSearch = signInEmail.trim().toLowerCase().split('@')[0];
+
+    // Get registered users list
+    let users = [];
     if (typeof window !== 'undefined') {
-      localStorage.setItem('user_name', signInEmail.split('@')[0]);
-      localStorage.setItem('user_avatar', '🦁');
-      localStorage.setItem('user_role', 'Engineering Student');
-      localStorage.setItem('user_interests', JSON.stringify(['🤖 AI & Machine Learning', '🌐 Web Development']));
-      localStorage.setItem('is_logged_in', 'true');
+      const usersRaw = localStorage.getItem('registered_users') || '[]';
+      try {
+        users = JSON.parse(usersRaw);
+      } catch (err) {
+        users = [];
+      }
     }
 
-    alert('Logged in successfully! Welcome back! 👋');
-    setXP(240);
-    setStreak(4);
+    // Match username/email prefix
+    const foundUser = users.find((u: any) => u && u.name && u.name.toLowerCase() === nameToSearch);
+
+    if (!foundUser) {
+      alert('Account not found. Please register first.');
+      return;
+    }
+
+    // Load user session
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user_name', foundUser.name);
+      localStorage.setItem('user_avatar', foundUser.avatar);
+      localStorage.setItem('user_role', foundUser.role);
+      localStorage.setItem('user_interests', JSON.stringify(foundUser.interests));
+      localStorage.setItem('is_logged_in', 'true');
+
+      // Sync Zustand store
+      setXP(foundUser.xp || 0);
+      setStreak(foundUser.streak || 0);
+    }
+
+    alert(`Logged in successfully! Welcome back, ${foundUser.name}! 👋`);
     router.push('/dashboard');
   };
 
@@ -139,17 +190,39 @@ export default function AuthPage() {
       return;
     }
     
-    // Fully offline mock magic link
-    alert(`Magic link has been simulated! Welcome ${emailToUse.split('@')[0]}! 🪄`);
+    const nameToSearch = emailToUse.trim().toLowerCase().split('@')[0];
+
+    // Get registered users
+    let users = [];
     if (typeof window !== 'undefined') {
-      localStorage.setItem('user_name', emailToUse.split('@')[0]);
-      localStorage.setItem('user_avatar', '🦉');
-      localStorage.setItem('user_role', 'Self Learner / Working Professional');
-      localStorage.setItem('user_interests', JSON.stringify(['💻 Programming', '🌐 Web Development']));
-      localStorage.setItem('is_logged_in', 'true');
+      const usersRaw = localStorage.getItem('registered_users') || '[]';
+      try {
+        users = JSON.parse(usersRaw);
+      } catch (err) {
+        users = [];
+      }
     }
-    setXP(150);
-    setStreak(3);
+
+    const foundUser = users.find((u: any) => u && u.name && u.name.toLowerCase() === nameToSearch);
+
+    if (!foundUser) {
+      alert('Account not found. Please register first.');
+      return;
+    }
+
+    // Set user session and metrics
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user_name', foundUser.name);
+      localStorage.setItem('user_avatar', foundUser.avatar);
+      localStorage.setItem('user_role', foundUser.role);
+      localStorage.setItem('user_interests', JSON.stringify(foundUser.interests));
+      localStorage.setItem('is_logged_in', 'true');
+
+      setXP(foundUser.xp || 0);
+      setStreak(foundUser.streak || 0);
+    }
+
+    alert(`Magic link simulated! Welcome back, ${foundUser.name}! 🪄`);
     router.push('/dashboard');
   };
 
@@ -361,11 +434,11 @@ export default function AuthPage() {
 
             {/* Email */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.email_label', 'Email Address')}</label>
+              <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.email_label', 'Email Address / Name')}</label>
               <input
-                type="email"
+                type="text"
                 required
-                placeholder={t('auth.email_placeholder', 'you@example.com')}
+                placeholder={t('auth.email_placeholder', 'you@example.com or name')}
                 value={signInEmail}
                 onChange={e => setSignInEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"

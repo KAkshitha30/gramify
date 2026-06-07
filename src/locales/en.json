@@ -8,6 +8,7 @@
   "leaderboard": "Leaderboard",
   "nav": {
     "dashboard": "Dashboard",
+    "lessons": "Lessons",
     "battle_arena": "Battle Arena",
     "ai_tutor": "AI Tutor"
   },
@@ -101,5 +102,22 @@
     "placeholder": "Ask about AI, Web Dev, Programming, Physics, Math, Biology, Cybersecurity, History...",
     "send": "Send ⚡",
     "welcome_msg": "Namaste, {{name}}! I am Guru AI, your dedicated personal learning tutor. 🤖\n\nI noticed you are learning **{{interests}}**! I can explain complex rules, chemical reactions, algorithms, physics, history, or language skills bilingually in Hindi & English.\n\nSelect a quick suggestion chip below or type any question to start!"
+  },
+  "lessons": {
+    "title": "Interactive Lessons 📚",
+    "subtitle": "Select a subject to start learning basic to advanced concepts with short checks.",
+    "lessons_completed": "lessons completed",
+    "start_lesson": "Start Lesson",
+    "completed": "Completed ✅",
+    "quiz_title": "Lesson Quiz 📝",
+    "quiz_subtitle": "Answer all 3 questions correctly to complete this lesson and earn +50 XP!",
+    "correct": "Correct! 🎉",
+    "incorrect": "Incorrect! ❌",
+    "submit": "Submit Answer",
+    "congrats": "Congratulations! 🎉",
+    "passed_msg": "You passed the quiz, completed the lesson, and earned +50 XP!",
+    "failed_msg": "You did not answer all questions correctly. Please review the notes and try again!",
+    "close": "Close & Return",
+    "retry": "Try Again"
   }
 }
