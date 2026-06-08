@@ -99,7 +99,7 @@ export default function AuthPage() {
       }
 
       // Filter out duplicate usernames
-      users = users.filter((u: any) => u && u.name && u.name.toLowerCase() !== userNameClean.toLowerCase());
+      users = users.filter((u: any) => u && u.name && u.name.toLowerCase().trim() !== userNameClean.toLowerCase().trim());
 
       const newUser = {
         name: userNameClean,
@@ -113,6 +113,7 @@ export default function AuthPage() {
       };
 
       users.push(newUser);
+      console.log("Saving to registered_users in localStorage:", newUser);
       localStorage.setItem('registered_users', JSON.stringify(users));
 
       // 2. Set current active session
@@ -139,14 +140,17 @@ export default function AuthPage() {
     }
 
     // Accept bare name or email — extract prefix before '@' if present
-    const nameToSearch = signInEmail.trim().toLowerCase().includes('@')
+    const rawNameToSearch = signInEmail.trim().toLowerCase().includes('@')
       ? signInEmail.trim().toLowerCase().split('@')[0]
       : signInEmail.trim().toLowerCase();
+    const nameToSearch = rawNameToSearch.trim();
 
     // Get registered users list
     let users: any[] = [];
     if (typeof window !== 'undefined') {
       const usersRaw = localStorage.getItem('registered_users') || '[]';
+      console.log("Login - Read raw 'registered_users' from localStorage:", usersRaw);
+      console.log("Login - Searching for name:", nameToSearch);
       try {
         users = JSON.parse(usersRaw);
       } catch (err) {
@@ -156,7 +160,7 @@ export default function AuthPage() {
 
     // Match by name
     const foundUser = users.find(
-      (u: any) => u && u.name && u.name.toLowerCase() === nameToSearch
+      (u: any) => u && u.name && u.name.toLowerCase().trim() === nameToSearch.toLowerCase().trim()
     );
 
     if (!foundUser) {
@@ -193,13 +197,16 @@ export default function AuthPage() {
       return;
     }
 
-    const nameToSearch = nameInput.trim().toLowerCase().includes('@')
+    const rawNameToSearch = nameInput.trim().toLowerCase().includes('@')
       ? nameInput.trim().toLowerCase().split('@')[0]
       : nameInput.trim().toLowerCase();
+    const nameToSearch = rawNameToSearch.trim();
 
     let users: any[] = [];
     if (typeof window !== 'undefined') {
       const usersRaw = localStorage.getItem('registered_users') || '[]';
+      console.log("Magic Link - Read raw 'registered_users' from localStorage:", usersRaw);
+      console.log("Magic Link - Searching for name:", nameToSearch);
       try {
         users = JSON.parse(usersRaw);
       } catch (err) {
@@ -208,7 +215,7 @@ export default function AuthPage() {
     }
 
     const foundUser = users.find(
-      (u: any) => u && u.name && u.name.toLowerCase() === nameToSearch
+      (u: any) => u && u.name && u.name.toLowerCase().trim() === nameToSearch.toLowerCase().trim()
     );
 
     if (!foundUser) {
