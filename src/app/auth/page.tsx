@@ -25,11 +25,7 @@ const ROLES = [
   "Class 6–8 Student",
   "Class 9–10 Student",
   "Class 11–12 Student",
-  "Engineering Student",
-  "College Student",
-  "Self Learner / Working Professional",
-  "Preparing for JEE/NEET",
-  "Preparing for UPSC / Govt Exams"
+  "Engineering Student"
 ];
 
 const SUBJECTS = [
@@ -61,7 +57,7 @@ export default function AuthPage() {
   
   // Onboarding Step 2 fields
   const [selectedRole, setSelectedRole] = useState(ROLES[0]);
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([SUBJECTS[1].name]); // Default to Web Dev
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
 
   // Sign in fields
   const [signInEmail, setSignInEmail] = useState('');
@@ -107,6 +103,7 @@ export default function AuthPage() {
 
       const newUser = {
         name: userNameClean,
+        password: password.trim(),
         avatar: selectedAvatar,
         role: selectedRole,
         interests: selectedSubjects,
@@ -137,14 +134,17 @@ export default function AuthPage() {
   const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!signInEmail || !signInPassword) {
-      alert('Please enter your email and password.');
+      alert('Please enter your name and password.');
       return;
     }
 
-    const nameToSearch = signInEmail.trim().toLowerCase().split('@')[0];
+    // Accept bare name or email — extract prefix before '@' if present
+    const nameToSearch = signInEmail.trim().toLowerCase().includes('@')
+      ? signInEmail.trim().toLowerCase().split('@')[0]
+      : signInEmail.trim().toLowerCase();
 
     // Get registered users list
-    let users = [];
+    let users: any[] = [];
     if (typeof window !== 'undefined') {
       const usersRaw = localStorage.getItem('registered_users') || '[]';
       try {
@@ -154,46 +154,50 @@ export default function AuthPage() {
       }
     }
 
-    // Match username/email prefix
-    const foundUser = users.find((u: any) => u && u.name && u.name.toLowerCase() === nameToSearch);
+    // Match by name
+    const foundUser = users.find(
+      (u: any) => u && u.name && u.name.toLowerCase() === nameToSearch
+    );
 
     if (!foundUser) {
       alert('Account not found. Please register first.');
       return;
     }
 
-    // Load user session
+    // Verify password (only if one was saved during registration)
+    if (foundUser.password && foundUser.password !== signInPassword.trim()) {
+      alert('Incorrect password. Please try again.');
+      return;
+    }
+
+    // Restore full saved profile — never reset to 0
     if (typeof window !== 'undefined') {
       localStorage.setItem('user_name', foundUser.name);
-      localStorage.setItem('user_avatar', foundUser.avatar);
-      localStorage.setItem('user_role', foundUser.role);
-      localStorage.setItem('user_interests', JSON.stringify(foundUser.interests));
+      localStorage.setItem('user_avatar', foundUser.avatar || '🦊');
+      localStorage.setItem('user_role', foundUser.role || 'Class 6–8 Student');
+      localStorage.setItem('user_interests', JSON.stringify(foundUser.interests || []));
       localStorage.setItem('is_logged_in', 'true');
 
-      // Sync Zustand store
+      // Sync Zustand store with saved XP and streak — do NOT reset
       setXP(foundUser.xp || 0);
       setStreak(foundUser.streak || 0);
     }
 
-    alert(`Logged in successfully! Welcome back, ${foundUser.name}! 👋`);
     router.push('/dashboard');
   };
 
   const handleMagicLink = async () => {
-    if (!signInEmail && activeTab === 'signin') {
-      alert('Please enter your email address first.');
+    const nameInput = activeTab === 'signin' ? signInEmail : email;
+    if (!nameInput) {
+      alert('Please enter your name or email first.');
       return;
     }
-    const emailToUse = activeTab === 'signin' ? signInEmail : email;
-    if (!emailToUse) {
-      alert('Please fill in your email address.');
-      return;
-    }
-    
-    const nameToSearch = emailToUse.trim().toLowerCase().split('@')[0];
 
-    // Get registered users
-    let users = [];
+    const nameToSearch = nameInput.trim().toLowerCase().includes('@')
+      ? nameInput.trim().toLowerCase().split('@')[0]
+      : nameInput.trim().toLowerCase();
+
+    let users: any[] = [];
     if (typeof window !== 'undefined') {
       const usersRaw = localStorage.getItem('registered_users') || '[]';
       try {
@@ -203,26 +207,26 @@ export default function AuthPage() {
       }
     }
 
-    const foundUser = users.find((u: any) => u && u.name && u.name.toLowerCase() === nameToSearch);
+    const foundUser = users.find(
+      (u: any) => u && u.name && u.name.toLowerCase() === nameToSearch
+    );
 
     if (!foundUser) {
       alert('Account not found. Please register first.');
       return;
     }
 
-    // Set user session and metrics
     if (typeof window !== 'undefined') {
       localStorage.setItem('user_name', foundUser.name);
-      localStorage.setItem('user_avatar', foundUser.avatar);
-      localStorage.setItem('user_role', foundUser.role);
-      localStorage.setItem('user_interests', JSON.stringify(foundUser.interests));
+      localStorage.setItem('user_avatar', foundUser.avatar || '🦊');
+      localStorage.setItem('user_role', foundUser.role || 'Class 6–8 Student');
+      localStorage.setItem('user_interests', JSON.stringify(foundUser.interests || []));
       localStorage.setItem('is_logged_in', 'true');
 
       setXP(foundUser.xp || 0);
       setStreak(foundUser.streak || 0);
     }
 
-    alert(`Magic link simulated! Welcome back, ${foundUser.name}! 🪄`);
     router.push('/dashboard');
   };
 
@@ -432,13 +436,13 @@ export default function AuthPage() {
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('auth.signin_sub', 'Sign in with email and password or magic link')}</p>
             </div>
 
-            {/* Email */}
+            {/* Name / Email */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.email_label', 'Email Address / Name')}</label>
+              <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">Your Name</label>
               <input
                 type="text"
                 required
-                placeholder={t('auth.email_placeholder', 'you@example.com or name')}
+                placeholder="Enter your registered name"
                 value={signInEmail}
                 onChange={e => setSignInEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
