@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useStore } from '@/store';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useAppTranslation } from '@/lib/useAppTranslation';
@@ -265,6 +266,16 @@ const DEFAULT_QUESTIONS: Question[] = [
 
 export default function BattleArenaPage() {
   const { xp, setXP } = useStore();
+const router = useRouter();
+
+useEffect(() => {
+  if (typeof window !== 'undefined') {
+    const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
+    if (!isLoggedIn) {
+      router.push('/auth');
+    }
+  }
+}, []);
   const { t } = useAppTranslation();
 
   const [state, setState] = useState<'idle' | 'searching' | 'battle' | 'finished'>('idle');
