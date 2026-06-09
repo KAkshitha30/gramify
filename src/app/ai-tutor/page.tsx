@@ -125,6 +125,7 @@ export default function AITutorPage() {
   }, [messages, isTyping]);
 
   const fetchAIResponse = async (question: string, history: Message[]): Promise<string> => {
+    console.log('API KEY EXISTS: ' + !!process.env.NEXT_PUBLIC_OPENROUTER_API_KEY);
     const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
     if (!apiKey) {
       console.warn("OpenRouter API key is missing. Using local bilingually parsed templates.");
