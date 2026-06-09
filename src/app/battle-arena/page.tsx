@@ -267,11 +267,32 @@ const DEFAULT_QUESTIONS: Question[] = [
 
 export default function BattleArenaPage() {
    const router = useRouter();
-   useEffect(() => {
-     if (typeof window !== 'undefined' && localStorage.getItem('is_logged_in') !== 'true') {
-       router.push('/auth');
-     }
-   }, []);
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsLoggedIn(localStorage.getItem('is_logged_in') === 'true');
+    }
+  }, []);
+  if (!isLoggedIn) return (
+    <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+      <h2>🔒 Access Restricted</h2>
+      <p>You need to be logged in to access Battle Arena.</p>
+      <a
+        href="/auth"
+        style={{
+          display: 'inline-block',
+          marginTop: '20px',
+          padding: '10px 24px',
+          background: '#6366f1',
+          color: '#fff',
+          borderRadius: '8px',
+          textDecoration: 'none',
+        }}
+      >
+        Login / Sign Up
+      </a>
+    </div>
+  );
   const { t } = useAppTranslation();
 const { xp, setXP } = useStore();
 

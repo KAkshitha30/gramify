@@ -182,10 +182,23 @@ export default function AuthPage() {
       localStorage.setItem('user_interests', JSON.stringify(foundUser.interests || []));
       localStorage.setItem('is_logged_in', 'true');
 
-      // Sync Zustand store with saved XP and streak — do NOT reset
+      // Sync Zustand store with saved XP — do NOT reset
       setXP(foundUser.xp || 0);
-      setStreak(foundUser.streak || 0);
-    }
+      // Update streak based on last login date
+      const today = new Date().toDateString();
+      const lastLogin = foundUser.last_login_date || '';
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      let newStreak = foundUser.streak || 0;
+      if (lastLogin === yesterday) {
+        newStreak = newStreak + 1;
+      } else if (lastLogin !== today) {
+        newStreak = 1;
+      }
+      foundUser.streak = newStreak;
+      foundUser.last_login_date = today;
+      const updatedUsers = users.map((u: any) => u.name.toLowerCase() === nameToSearch ? foundUser : u);
+      localStorage.setItem('registered_users', JSON.stringify(updatedUsers));
+      setStreak(newStreak);
 
     router.push('/dashboard');
   };
