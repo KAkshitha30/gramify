@@ -139,6 +139,7 @@ export default function AITutorPage() {
     const systemPrompt = `You are Guru AI, a knowledgeable, friendly, and bilingually supportive personal teacher for a student learning platform.
 The student is currently registered as a "${userRole}" and is learning: ${interests.join(', ')}.
 You must answer questions on ANY topic (science, math, history, coding, general knowledge, etc.) in detail, acting like a brilliant bilingually supportive teacher.
+IMPORTANT: You must answer the student's question directly, clearly, and completely, regardless of whether it is related to their registered subjects. Do not dodge the question, do not try to steer the conversation back to their registered subjects, and do not tell the user that you are only able to explain their selected subjects. Simply answer any question they ask directly.
 Please reply bilingually or in a mix of Hindi and English (Hinglish/Hindi script where appropriate) to make complex concepts simple and engaging for students.
 Always format your response cleanly using Markdown, bold text for key terms, lists, and code blocks for programming syntax.
 Provide detailed explanations like Google or ChatGPT would. Keep your tone highly encouraging and positive!`;
@@ -222,9 +223,38 @@ Provide detailed explanations like Google or ChatGPT would. Keep your tone highl
         finalAiText = "In **Unity 3D Game Development**, collision detection allows game objects to interact or crash into each other. 🎮\n\nसरल भाषा में:\nजब एक प्लेयर किसी दीवार या दुश्मन से टकराता है, तो Unity का Physics Engine (Collider & Rigidbody component) उस टक्कर को पहचानता है और खिलाड़ी को रोकने या उसकी हेल्थ कम करने का आदेश देता है!";
       } else if (lowerText.includes('data science')) {
         finalAiText = "**Data Science** is the field of study that combines domain expertise, programming skills, and knowledge of mathematics and statistics to extract meaningful insights from data. 📊\n\nसरल भाषा में:\nकचरा डेटा में से कीमती जानकारी ढूंढना! इसके जरिए कंपनियाँ भविष्य की योजनाएँ बनाती हैं और नए प्रोडक्ट्स लॉन्च करती हैं।";
+      } else if (lowerText.includes('history') || lowerText.includes('gandhi') || lowerText.includes('war') || lowerText.includes('india')) {
+        finalAiText = "**History & General Knowledge** teaches us about past events, societies, and civilizations that shaped our world. 📜\n\nसरल शब्दों में (In simple terms):\nइतिहास हमें बताता है कि हमारे पूर्वज कैसे रहते थे, महत्वपूर्ण युद्ध (like World Wars) क्यों हुए, और महात्मा गांधी (Mahatma Gandhi) जैसे नेताओं ने स्वतंत्रता संग्राम में क्या भूमिका निभाई।\n\n**Key Lesson**:\nUnderstanding history helps us learn from past mistakes and make better decisions for a smarter future!";
+      } else if (lowerText.includes('grammar') || lowerText.includes('english') || lowerText.includes('noun') || lowerText.includes('verb') || lowerText.includes('tense')) {
+        finalAiText = "**English Grammar** is the system and structure of the English language, guiding how we combine words to express ideas clearly. 📝\n\nसरल शब्दों में:\nव्याकरण नियमों का वह समूह है जो हमें सही तरीके से बोलना और लिखना सिखाता है।\n- **Noun (संज्ञा)**: Name of a person, place, or thing (e.g., Akshitha, Delhi, Book).\n- **Verb (क्रिया)**: Action words (e.g., learn, play, code).\n- **Tenses (काल)**: Show the time of action (Past, Present, Future).\n\nHaving good grammar makes communication simple and effective!";
       } else {
-        finalAiText = `That is an interesting question! Let's explore that topic together. 🌟\n\nSince you are registered as a learner in **${interests.join(', ')}**, I can provide deep examples, bilingually in Hindi and English.\n\nWould you like me to give you a quiz, explain a specific concept, or provide step-by-step calculations?`;
-        xpReward = 10;
+        // Dynamic educational helper fallback
+        let topic = text.trim();
+        if (topic.endsWith('?')) topic = topic.slice(0, -1);
+        if (topic.endsWith('.')) topic = topic.slice(0, -1);
+        if (topic.endsWith('!')) topic = topic.slice(0, -1);
+
+        const prefixes = [
+          /^(what is a|what is an|what is|what are|what's|define|explain|tell me about|how does|why is|who is)\s+/i,
+          /^(meaning of|concept of|history of|formula for)\s+/i
+        ];
+        
+        for (const p of prefixes) {
+          if (p.test(topic)) {
+            topic = topic.replace(p, '');
+            break;
+          }
+        }
+
+        topic = topic.trim();
+        if (topic.length > 0) {
+          topic = topic.charAt(0).toUpperCase() + topic.slice(1);
+        } else {
+          topic = "this topic";
+        }
+
+        finalAiText = `Here is a clear and direct explanation of **${topic}**: 🌟\n\n1. **Core Concept**: **${topic}** represents the foundational principles, definitions, or processes associated with this subject.\n\n2. **Bilingual Explanation (सरल शब्दों में)**:\nजब हम **${topic}** के बारे में बात करते हैं, तो इसका सीधा मतलब उस विषय या तकनीक से है जो इस क्षेत्र को संचालित करती है। इसे अच्छी तरह समझने से आपके प्रैक्टिकल और थ्योरिटिकल दोनों स्किल्स मजबूत होते हैं।\n\n3. **Practical Application**:\nIn real-world scenarios, application of **${topic}** helps experts, developers, and researchers solve complex problems, build robust designs, and understand natural or artificial phenomena.\n\nWould you like to dive deeper into this or see a specific example related to **${topic}**?`;
+        xpReward = 20;
       }
     }
 
