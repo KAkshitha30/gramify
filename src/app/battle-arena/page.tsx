@@ -1,3 +1,4 @@
+// force-redeploy-v2
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -265,18 +266,14 @@ const DEFAULT_QUESTIONS: Question[] = [
 ];
 
 export default function BattleArenaPage() {
-  const { xp, setXP } = useStore();
-const router = useRouter();
-
-useEffect(() => {
-  if (typeof window !== 'undefined') {
-    const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
-    if (!isLoggedIn) {
-      router.push('/auth');
-    }
-  }
-}, []);
+   const router = useRouter();
+   useEffect(() => {
+     if (typeof window !== 'undefined' && localStorage.getItem('is_logged_in') !== 'true') {
+       router.push('/auth');
+     }
+   }, []);
   const { t } = useAppTranslation();
+const { xp, setXP } = useStore();
 
   const [state, setState] = useState<'idle' | 'searching' | 'battle' | 'finished'>('idle');
   const [opponent, setOpponent] = useState({ name: '', avatar: '🤖', xp: 0 });
