@@ -59,7 +59,11 @@ export default function Navbar() {
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
-      localStorage.clear();
+      localStorage.removeItem('is_logged_in');
+      localStorage.removeItem('user_name');
+      localStorage.removeItem('user_avatar');
+      localStorage.removeItem('user_role');
+      localStorage.removeItem('user_interests');
       setUserName('');
       setUserAvatar('');
       setXP(0);

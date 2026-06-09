@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '@/store';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppTranslation } from '@/lib/useAppTranslation';
 
@@ -75,6 +76,7 @@ const SUBJECT_MAP: Record<string, QuestTopic[]> = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { xp, streak, setXP, setStreak } = useStore();
   const { t } = useAppTranslation();
   
@@ -93,6 +95,12 @@ export default function DashboardPage() {
       let activeInterests: string[] = [];
 
       if (typeof window !== 'undefined') {
+        const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
+        if (!isLoggedIn) {
+          router.push('/auth');
+          return;
+        }
+
         const storedName = localStorage.getItem('user_name');
         const usersRaw = localStorage.getItem('registered_users') || '[]';
         let users = [];
