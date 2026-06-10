@@ -5,42 +5,6 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store';
 import { useRouter } from 'next/navigation';
 import { useAppTranslation } from '@/lib/useAppTranslation';
-
-const AVATARS = [
-  { emoji: '🦊', label: 'Fox' },
-  { emoji: '🦁', label: 'Lion' },
-  { emoji: '🐯', label: 'Tiger' },
-  { emoji: '🐼', label: 'Panda' },
-  { emoji: '🦅', label: 'Eagle' },
-  { emoji: '🦋', label: 'Butterfly' },
-  { emoji: '🐬', label: 'Dolphin' },
-  { emoji: '🦄', label: 'Unicorn' },
-  { emoji: '🐍', label: 'Snake' },
-  { emoji: '🦉', label: 'Owl' },
-  { emoji: '🦚', label: 'Peacock' },
-  { emoji: '🦀', label: 'Crab' }
-];
-
-const ROLES = [
-  "Class 6–8 Student",
-  "Class 9–10 Student",
-  "Class 11–12 Student",
-  "Engineering Student"
-];
-
-const SUBJECTS = [
-  { id: 'ai_ml', name: '🤖 AI & Machine Learning' },
-  { id: 'web_dev', name: '🌐 Web Development' },
-  { id: 'data_science', name: '📊 Data Science' },
-  { id: 'programming', name: '💻 Programming' },
-  { id: 'physics', name: '⚡ Physics' },
-  { id: 'math', name: '🧮 Mathematics' },
-  { id: 'chemistry', name: '🧪 Chemistry' },
-  { id: 'biology', name: '🧬 Biology' },
-  { id: 'game_dev', name: '🎮 Game Development' },
-  { id: 'cybersecurity', name: '🔒 Cybersecurity' }
-];
-
 export default function AuthPage() {
   const router = useRouter();
   const { setXP, setStreak } = useStore();
@@ -128,7 +92,7 @@ export default function AuthPage() {
       setStreak(0);
     }
 
-    alert(`Account created successfully! Welcome ${userNameClean}! 🎉`);
+    alert(`Account created successfully! Welcome ${userNameClean}! 🥳`);
     router.push('/dashboard');
   };
 
@@ -201,9 +165,10 @@ export default function AuthPage() {
       const updatedUsers = users.map((u: any) => u.name.toLowerCase() === nameToSearch ? foundUser : u);
       localStorage.setItem('registered_users', JSON.stringify(updatedUsers));
       console.log('streak debug:', today, lastLogin, newStreak);
-setStreak(newStreak);
+      setStreak(newStreak);
 
-    router.push('/dashboard');
+      router.push('/dashboard');
+    }
   };
 
   const handleMagicLink = async () => {
@@ -255,13 +220,10 @@ setStreak(newStreak);
 
   return (
     <div className="min-h-screen py-12 px-4 flex flex-col justify-center items-center bg-gradient-to-b from-slate-50 via-slate-100 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-300">
-      
       {/* Container panel */}
       <div className="w-full max-w-xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl overflow-hidden p-6 sm:p-8 relative transition-colors duration-300">
-        
         {/* Absolute glow design */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-bl-[120px] pointer-events-none -z-10" />
-
         {/* Top active tab picker */}
         <div className="grid grid-cols-2 p-1.5 bg-slate-100 dark:bg-slate-950 rounded-2xl mb-8 border border-slate-200/50 dark:border-slate-800/40">
           <button
@@ -285,9 +247,7 @@ setStreak(newStreak);
             🚀 {t('auth.create_account', 'Sign Up')}
           </button>
         </div>
-
         {activeTab === 'signup' ? (
-          /* Sign Up Forms */
           <div>
             {step === 1 ? (
               <form onSubmit={handleSignUpSubmit} className="space-y-6">
@@ -295,12 +255,9 @@ setStreak(newStreak);
                   <h2 className="text-2xl font-bold">{t('auth.create_account', 'Create your account')}</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('auth.step_1', 'Step 1 of 2 — Basic details')}</p>
                 </div>
-
                 {/* Avatar selection grid */}
                 <div className="space-y-3">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                    {t('auth.pick_avatar', 'PICK AVATAR')}
-                  </label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">{t('auth.pick_avatar', 'PICK AVATAR')}</label>
                   <div className="grid grid-cols-6 gap-3">
                     {AVATARS.map((avatar) => (
                       <button
@@ -318,7 +275,6 @@ setStreak(newStreak);
                     ))}
                   </div>
                 </div>
-
                 {/* Name */}
                 <div className="space-y-1.5">
                   <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.your_name', 'Your name')}</label>
@@ -331,7 +287,6 @@ setStreak(newStreak);
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
                   />
                 </div>
-
                 {/* Email */}
                 <div className="space-y-1.5">
                   <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.email_label', 'Email Address')}</label>
@@ -344,7 +299,6 @@ setStreak(newStreak);
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
                   />
                 </div>
-
                 {/* Password */}
                 <div className="space-y-1.5">
                   <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.password_label', 'Password')}</label>
@@ -357,7 +311,6 @@ setStreak(newStreak);
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
                   />
                 </div>
-
                 <div className="pt-2">
                   <button
                     type="submit"
@@ -368,7 +321,6 @@ setStreak(newStreak);
                 </div>
               </form>
             ) : (
-              /* Step 2 Onboarding */
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
@@ -378,12 +330,9 @@ setStreak(newStreak);
                     {t('auth.step_2', 'Step 2 of 2 — What are you learning?')}
                   </p>
                 </div>
-
                 {/* Section 1 - I AM A... */}
                 <div className="space-y-3">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                    {t('auth.i_am_a', 'I AM A...')}
-                  </label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">{t('auth.i_am_a', 'I AM A...')}</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {ROLES.map((role) => {
                       const isSelected = selectedRole === role;
@@ -404,12 +353,9 @@ setStreak(newStreak);
                     })}
                   </div>
                 </div>
-
                 {/* Section 2 - I WANT TO LEARN... */}
                 <div className="space-y-3">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                    {t('auth.i_want_to_learn', 'I WANT TO LEARN... (PICK 1+)')}
-                  </label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">{t('auth.i_want_to_learn', 'I WANT TO LEARN... (PICK 1+)')}</label>
                   <div className="flex flex-wrap gap-2.5">
                     {SUBJECTS.map((subject) => {
                       const isSelected = selectedSubjects.includes(subject.name);
@@ -430,7 +376,6 @@ setStreak(newStreak);
                     })}
                   </div>
                 </div>
-
                 {/* Action Buttons */}
                 <div className="flex gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
                   <button
@@ -452,13 +397,11 @@ setStreak(newStreak);
             )}
           </div>
         ) : (
-          /* Sign In Form */
           <form onSubmit={handleSignInSubmit} className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold">{t('auth.welcome_back', 'Welcome back!')}</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('auth.signin_sub', 'Sign in with email and password or magic link')}</p>
             </div>
-
             {/* Name / Email */}
             <div className="space-y-1.5">
               <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">Your Name</label>
@@ -471,7 +414,6 @@ setStreak(newStreak);
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
               />
             </div>
-
             {/* Password */}
             <div className="space-y-1.5">
               <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300">{t('auth.password_label', 'Password')}</label>
@@ -484,20 +426,19 @@ setStreak(newStreak);
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
               />
             </div>
-
             <div className="flex gap-4 pt-2">
               <button
                 type="button"
                 onClick={handleMagicLink}
                 className="flex-1 py-4 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold rounded-2xl transition"
               >
-                {t('auth.magic_link', '🪄 Magic Link')}
+                {t('auth.magic_link', '✨ Magic Link')}
               </button>
               <button
                 type="submit"
                 className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 hover:shadow-xl transition transform hover:-translate-y-0.5"
               >
-                {t('auth.signin_btn', 'Sign In 🔒')}
+                {t('auth.signin_btn', 'Sign In 🔐')}
               </button>
             </div>
           </form>
@@ -506,3 +447,35 @@ setStreak(newStreak);
     </div>
   );
 }
+
+const AVATARS = [
+  { emoji: '🦊', label: 'Fox' },
+  { emoji: '🦁', label: 'Lion' },
+  { emoji: '🐯', label: 'Tiger' },
+  { emoji: '🐼', label: 'Panda' },
+  { emoji: '🦅', label: 'Eagle' },
+  { emoji: '🦋', label: 'Butterfly' },
+  { emoji: '🐬', label: 'Dolphin' },
+  { emoji: '🦄', label: 'Unicorn' },
+  { emoji: '🐍', label: 'Snake' },
+  { emoji: '🦉', label: 'Owl' },
+  { emoji: '🦚', label: 'Peacock' },
+  { emoji: '🦀', label: 'Crab' }
+];
+
+const ROLES = [
+  "Class 6–8 Student",
+  "Class 9–10 Student",
+  "Class 11–12 Student",
+  "Engineering Student"
+];
+
+const SUBJECTS = [
+  { id: 'ai_ml', name: '🤖 AI & Machine Learning' },
+  { id: 'web_dev', name: '🌐 Web Development' },
+  { id: 'data_science', name: '📊 Data Science' },
+  { id: 'programming', name: '💻 Programming' },
+  { id: 'physics', name: '⚡ Physics' },
+  { id: 'math', name: '🧮 Mathematics' },
+  { id: 'chemistry', name: '🧪 Chemistry' }
+];
