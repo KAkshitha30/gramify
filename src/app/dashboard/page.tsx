@@ -82,7 +82,9 @@ export default function DashboardPage() {
           localStorage.setItem('user_avatar', activeAvatar);
           localStorage.setItem('user_role', activeRole);
           localStorage.setItem('user_interests', JSON.stringify(activeInterests));
-          
+          const role = activeRole || 'Class 6-8 Student';
+          const allowedLevels = (role.includes('Engineering') || role.includes('11') || role.includes('12')) ? ['basic','intermediate','advanced'] : (role.includes('9') || role.includes('10')) ? ['basic','intermediate'] : ['basic'];
+          localStorage.setItem('allowed_levels', JSON.stringify(allowedLevels));
           const dashXP = (foundUser.completedLessons && foundUser.completedLessons.length > 0) ? (foundUser.xp || 0) : 0;
           setXP(dashXP);
           const dashStreak = foundUser.streak || 0;
