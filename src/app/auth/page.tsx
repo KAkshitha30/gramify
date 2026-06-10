@@ -477,5 +477,9 @@ const SUBJECTS = [
   { id: 'programming', name: '💻 Programming' },
   { id: 'physics', name: '⚡ Physics' },
   { id: 'math', name: '🧮 Mathematics' },
-  { id: 'chemistry', name: '🧪 Chemistry' }
+  { id: 'chemistry', name: '🧪 Chemistry' },
+  { id: 'game_dev', name: '🎮 Game Development' },
+  { id: 'cybersecurity', name: '🔒 Cybersecurity' },
+  { id: 'english', name: '📚 English' },
+  { id: 'social_studies', name: '🌍 Social Studies' }
 ];

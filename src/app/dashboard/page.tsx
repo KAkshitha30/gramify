@@ -28,7 +28,9 @@ const SUBJECT_LESSON_IDS: Record<string, string[]> = {
   '🧪 Chemistry': ['chemistry-basic', 'chemistry-intermediate', 'chemistry-advanced'],
   '🧬 Biology': ['biology-basic', 'biology-intermediate', 'biology-advanced'],
   '🎮 Game Development': ['game_dev-basic', 'game_dev-intermediate', 'game_dev-advanced'],
-  '🔒 Cybersecurity': ['cybersecurity-basic', 'cybersecurity-intermediate', 'cybersecurity-advanced']
+  '🔒 Cybersecurity': ['cybersecurity-basic', 'cybersecurity-intermediate', 'cybersecurity-advanced'],
+  '📚 English': ['english-basic', 'english-intermediate', 'english-advanced'],
+  '🌍 Social Studies': ['social_studies-basic', 'social_studies-intermediate', 'social_studies-advanced']
 };
 
 export default function DashboardPage() {
