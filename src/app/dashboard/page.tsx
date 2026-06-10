@@ -16,13 +16,7 @@ interface LeaderboardUser {
   rank: number;
 }
 
-const INITIAL_LEADERBOARD: LeaderboardUser[] = [
-  { rank: 1, name: 'Aarav Sharma', xp: 2450, avatar: '🦊', level: 12 },
-  { rank: 2, name: 'Priya Patel', xp: 2100, avatar: '🦄', level: 10 },
-  { rank: 3, name: 'Amit Verma', xp: 1850, avatar: '🐼', level: 9 },
-  { rank: 4, name: 'Neha Gupta', xp: 1520, avatar: '🦉', level: 8 },
-  { rank: 5, name: 'Rohan Singh', xp: 1200, avatar: '🐯', level: 6 }
-];
+const INITIAL_LEADERBOARD: LeaderboardUser[] = [];
 
 const SUBJECT_LESSON_IDS: Record<string, string[]> = {
   '🤖 AI & Machine Learning': ['ai_ml-basic', 'ai_ml-intermediate', 'ai_ml-advanced'],
@@ -87,8 +81,10 @@ export default function DashboardPage() {
           localStorage.setItem('user_role', activeRole);
           localStorage.setItem('user_interests', JSON.stringify(activeInterests));
           
-          setXP(foundUser.xp || 0);
-          setStreak(foundUser.streak || 0);
+          const dashXP = (foundUser.completedLessons && foundUser.completedLessons.length > 0) ? (foundUser.xp || 0) : 0;
+          setXP(dashXP);
+          const dashStreak = foundUser.streak || 0;
+          setStreak(dashStreak);
         } else {
           const storedAvatar = localStorage.getItem('user_avatar');
           const storedRole = localStorage.getItem('user_role');
@@ -118,7 +114,19 @@ export default function DashboardPage() {
 
     syncUserProfile();
 
-    setLeaderboard(INITIAL_LEADERBOARD);
+    const stored = JSON.parse(localStorage.getItem('registered_users') || '[]');
+    const dynamic = stored
+      .filter((u: any) => u && u.name)
+      .sort((a: any, b: any) => (b.xp || 0) - (a.xp || 0))
+      .slice(0, 10)
+      .map((u: any, i: number) => ({
+        rank: i + 1,
+        name: u.name,
+        xp: u.xp || 0,
+        avatar: u.avatar || '🎓',
+        level: Math.floor((u.xp || 0) / 100) + 1
+      }));
+    setLeaderboard(dynamic);
   }, []);
 
   const level = Math.floor(xp / 100) + 1;

@@ -183,7 +183,9 @@ export default function AuthPage() {
       localStorage.setItem('is_logged_in', 'true');
 
       // Sync Zustand store with saved XP — do NOT reset
-      setXP(foundUser.xp || 0);
+      const correctXP = (foundUser.completedLessons && foundUser.completedLessons.length > 0) ? (foundUser.xp || 0) : 0;
+      foundUser.xp = correctXP;
+      setXP(correctXP);
       // Update streak based on last login date
       const today = new Date().toDateString();
       const lastLogin = foundUser.last_login_date || '';
@@ -198,7 +200,8 @@ export default function AuthPage() {
       foundUser.last_login_date = today;
       const updatedUsers = users.map((u: any) => u.name.toLowerCase() === nameToSearch ? foundUser : u);
       localStorage.setItem('registered_users', JSON.stringify(updatedUsers));
-      setStreak(newStreak);
+      console.log('streak debug:', today, lastLogin, newStreak);
+setStreak(newStreak);
 
     router.push('/dashboard');
   };
