@@ -190,7 +190,7 @@ export default function AuthPage() {
       const today = new Date().toDateString();
       const lastLogin = foundUser.last_login_date || '';
       const yesterday = new Date(Date.now() - 86400000).toDateString();
-      let newStreak = foundUser.streak || 0;
+      let newStreak = foundUser.streak || 1;
       if (lastLogin === yesterday) {
         newStreak = newStreak + 1;
       } else if (lastLogin !== today) {

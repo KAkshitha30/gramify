@@ -114,19 +114,21 @@ export default function DashboardPage() {
 
     syncUserProfile();
 
-    const stored = JSON.parse(localStorage.getItem('registered_users') || '[]');
-    const dynamic = stored
-      .filter((u: any) => u && u.name)
-      .sort((a: any, b: any) => (b.xp || 0) - (a.xp || 0))
-      .slice(0, 10)
-      .map((u: any, i: number) => ({
-        rank: i + 1,
-        name: u.name,
-        xp: u.xp || 0,
-        avatar: u.avatar || '🎓',
-        level: Math.floor((u.xp || 0) / 100) + 1
-      }));
-    setLeaderboard(dynamic);
+    setTimeout(() => {
+      const stored = JSON.parse(localStorage.getItem('registered_users') || '[]');
+      const dynamic = stored
+        .filter((u: any) => u && u.name)
+        .sort((a: any, b: any) => (b.xp || 0) - (a.xp || 0))
+        .slice(0, 10)
+        .map((u: any, i: number) => ({
+          rank: i + 1,
+          name: u.name,
+          xp: u.xp || 0,
+          avatar: u.avatar || '🎓',
+          level: Math.floor((u.xp || 0) / 100) + 1
+        }));
+      setLeaderboard(dynamic);
+    }, 100);
   }, []);
 
   const level = Math.floor(xp / 100) + 1;
@@ -230,7 +232,7 @@ export default function DashboardPage() {
               {t('dash.lesson_progress', 'Lesson Progress 📚')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {Object.entries(SUBJECT_LESSON_IDS).map(([subject, lessonIds]) => {
+              {Object.entries(SUBJECT_LESSON_IDS).filter(([subject]) => interests.includes(subject)).map(([subject, lessonIds]) => {
                 const completedCount = lessonIds.filter(id => completedLessons.includes(id)).length;
                 const total = lessonIds.length;
                 const progress = Math.round((completedCount / total) * 100);
