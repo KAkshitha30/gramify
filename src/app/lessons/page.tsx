@@ -1495,7 +1495,9 @@ const LESSONS_DATABASE: Record<string, Record<string, Lesson[]>> = {
         }
       ]
     }
-  };
+  ]
+  },
+};
 
 export default function LessonsPage() {
   const router = useRouter();
@@ -1749,11 +1751,7 @@ const handleLessonStart = (lesson: Lesson, subject: string) => {
     const unlockedLessons = getUnlockState(lessonsList);
     const progressPercent = getSubjectProgress(subjectName);
     const completedCount = getSubjectCompletedCount(subjectName);
-          const subKey = SUBJECT_IDS[subjectName];
-          const lessonsList = getFilteredLessons(subKey);
-    const unlockedLessons = getUnlockState(lessonsList);
-          const progressPercent = getSubjectProgress(subjectName);
-          const completedCount = getSubjectCompletedCount(subjectName);
+
 
           return (
             <div 
