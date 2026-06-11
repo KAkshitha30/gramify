@@ -1495,8 +1495,7 @@ const LESSONS_DATABASE: Record<string, Record<string, Lesson[]>> = {
         }
       ]
     }
-  ]
-};
+  };
 
 export default function LessonsPage() {
   const router = useRouter();
