@@ -31,12 +31,10 @@ const SUBJECT_IDS: Record<string, string> = {
   '🧬 Biology': 'biology',
   '🎮 Game Development': 'game_dev',
   '🔒 Cybersecurity': 'cybersecurity',
-  '📚 English': 'english',
-  '🌍 Social Studies': 'social_studies',
 };
 
-const LESSONS_DATABASE: Record<string, Record<string, Lesson[]>> = {
-  'ai_ml': { 'class_6_8': [
+const LESSONS_DATABASE: Record<string, Lesson[]> = {
+  'ai_ml': [
     {
       id: 'ai_ml-basic',
       level: 'Basic',
@@ -1496,7 +1494,6 @@ const LESSONS_DATABASE: Record<string, Record<string, Lesson[]>> = {
       ]
     }
   ]
-  },
 };
 
 export default function LessonsPage() {
@@ -1508,7 +1505,6 @@ export default function LessonsPage() {
   const [activeUser, setActiveUser] = useState<any>(null);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
-  const [userRole, setUserRole] = useState('Class 6-8 Student');
 
   // Modal / Active Lesson State
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
@@ -1543,9 +1539,6 @@ export default function LessonsPage() {
       setActiveUser(user);
       setSelectedSubjects(user.interests || []);
       setCompletedLessons(user.completedLessons || []);
-      setUserRole(user.role || 'Class 6-8 Student');
-      setUserRole(user.role || 'Class 6-8 Student');
-      
     } else {
       // Fallback if user profile not found inside list
       const storedInterests = localStorage.getItem('user_interests');
@@ -1599,34 +1592,7 @@ export default function LessonsPage() {
     );
   }
 
-  const getLevelGroup = () => {
-  if (userRole.includes('Engineering')) return 'engineering';
-  if (userRole.includes('11') || userRole.includes('12')) return 'class_11_12';
-  if (userRole.includes('9') || userRole.includes('10')) return 'class_9_10';
-  return 'class_6_8';
-};
-
-const getFilteredLessons = (subjectId: string) => {
-  const levelGroup = getLevelGroup();
-  const subjectData = LESSONS_DATABASE[subjectId];
-  if (!subjectData) return [];
-  const techSubjects = ['ai_ml', 'web_dev', 'programming', 'game_dev', 'cybersecurity', 'data_science'];
-  const key = techSubjects.includes(subjectId) ? 'engineering' : levelGroup;
-  return (subjectData as any)[key] || [];
-};
-
-
-const getUnlockState = (lessons: Lesson[]) => {
-  const completedCount = lessons.filter(l => completedLessons.includes(l.id)).length;
-  const unlockedUpTo = Math.min(completedCount + 2, lessons.length);
-  return lessons.map((lesson, index) => ({
-    lesson,
-    isCompleted: completedLessons.includes(lesson.id),
-    isUnlocked: index < unlockedUpTo,
-  }));
-};
-
-const handleLessonStart = (lesson: Lesson, subject: string) => {
+  const handleLessonStart = (lesson: Lesson, subject: string) => {
     setActiveLesson(lesson);
     setActiveSubject(subject);
     setQuizAnswers({});
@@ -1704,23 +1670,26 @@ const handleLessonStart = (lesson: Lesson, subject: string) => {
   };
 
   const getSubjectProgress = (subjectName: string): number => {
-  const subKey = SUBJECT_IDS[subjectName];
-  if (!subKey) return 0;
-  const lessonsList = getFilteredLessons(subKey);
-  const total = lessonsList.length;
-  if (total === 0) return 0;
-  const completed = lessonsList.filter((l: Lesson) => completedLessons.includes(l.id)).length;
-  return Math.round((completed / total) * 100);
-};
+    const subKey = SUBJECT_IDS[subjectName];
+    if (!subKey || !LESSONS_DATABASE[subKey]) return 0;
+
+    const lessonsList = LESSONS_DATABASE[subKey];
+    const total = lessonsList.length;
+    const completed = lessonsList.filter(l => completedLessons.includes(l.id)).length;
+
+    return Math.round((completed / total) * 100);
+  };
 
   const getSubjectCompletedCount = (subjectName: string): string => {
-  const subKey = SUBJECT_IDS[subjectName];
-  if (!subKey) return '0/0';
-  const lessonsList = getFilteredLessons(subKey);
-  const total = lessonsList.length;
-  const completed = lessonsList.filter((l: Lesson) => completedLessons.includes(l.id)).length;
-  return `${completed}/${total}`;
-};
+    const subKey = SUBJECT_IDS[subjectName];
+    if (!subKey || !LESSONS_DATABASE[subKey]) return '0/3';
+
+    const lessonsList = LESSONS_DATABASE[subKey];
+    const total = lessonsList.length;
+    const completed = lessonsList.filter(l => completedLessons.includes(l.id)).length;
+
+    return `${completed}/${total}`;
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-10 transition-colors duration-300">
@@ -1737,21 +1706,11 @@ const handleLessonStart = (lesson: Lesson, subject: string) => {
 
       {/* Subjects Grid */}
       <div className="space-y-8">
-        {selectedSubjects
-  .filter((subjectName) => {
-    const subKey = SUBJECT_IDS[subjectName];
-    const techSubjects = ['ai_ml', 'web_dev', 'programming', 'game_dev', 'cybersecurity', 'data_science'];
-    const lg = getLevelGroup();
-    if (techSubjects.includes(subKey) && lg !== 'engineering') return false;
-    return true;
-  })
-  .map((subjectName) => {
-    const subKey = SUBJECT_IDS[subjectName];
-    const lessonsList = getFilteredLessons(subKey);
-    const unlockedLessons = getUnlockState(lessonsList);
-    const progressPercent = getSubjectProgress(subjectName);
-    const completedCount = getSubjectCompletedCount(subjectName);
-
+        {selectedSubjects.map((subjectName) => {
+          const subKey = SUBJECT_IDS[subjectName];
+          const lessonsList = LESSONS_DATABASE[subKey] || [];
+          const progressPercent = getSubjectProgress(subjectName);
+          const completedCount = getSubjectCompletedCount(subjectName);
 
           return (
             <div 
@@ -1786,33 +1745,15 @@ const handleLessonStart = (lesson: Lesson, subject: string) => {
 
               {/* Subject Lessons List */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {unlockedLessons.map(({ lesson, isCompleted, isUnlocked }) => {
+                {lessonsList.map((lesson) => {
+                  const isCompleted = completedLessons.includes(lesson.id);
+                  
+                  // Color Scheme by Difficulty
                   const levelColors = {
                     Basic: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40',
                     Intermediate: 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/40',
                     Advanced: 'bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900/40'
                   };
-
-                  if (!isUnlocked) {
-                    return (
-                      <div
-                        key={lesson.id}
-                        className="relative border border-slate-200/40 dark:border-slate-800/40 rounded-2xl p-5 sm:p-6 bg-slate-100/40 dark:bg-slate-900/20 flex flex-col justify-between gap-5 opacity-50 cursor-not-allowed border-l-4 border-l-slate-200 dark:border-l-slate-800"
-                      >
-                        <div className="space-y-3">
-                          <span className={`inline-block text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md border ${levelColors[lesson.level]}`}>
-                            {t(`lessons.${lesson.levelKey}`, lesson.level)}
-                          </span>
-                          <h3 className="font-extrabold text-base text-slate-400 dark:text-slate-600 leading-snug">
-                            {language === 'en' ? lesson.title.en : lesson.title.hi}
-                          </h3>
-                        </div>
-                        <div className="w-full py-2.5 rounded-xl font-bold text-xs tracking-wide text-center bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-700">
-                          🔒 Complete previous lessons to unlock
-                        </div>
-                      </div>
-                    );
-                  }
 
                   return (
                     <div
@@ -1825,10 +1766,12 @@ const handleLessonStart = (lesson: Lesson, subject: string) => {
                         <span className={`inline-block text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md border ${levelColors[lesson.level]}`}>
                           {t(`lessons.${lesson.levelKey}`, lesson.level)}
                         </span>
+                        
                         <h3 className="font-extrabold text-base text-slate-800 dark:text-slate-100 leading-snug">
                           {language === 'en' ? lesson.title.en : lesson.title.hi}
                         </h3>
                       </div>
+
                       <button
                         onClick={() => handleLessonStart(lesson, subjectName)}
                         className={`w-full py-2.5 rounded-xl font-bold text-xs tracking-wide shadow-sm hover:shadow transition-all transform active:scale-98 cursor-pointer ${
@@ -1837,8 +1780,8 @@ const handleLessonStart = (lesson: Lesson, subject: string) => {
                             : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/10'
                         }`}
                       >
-                        {isCompleted
-                          ? t('lessons.completed', 'Completed ✅')
+                        {isCompleted 
+                          ? t('lessons.completed', 'Completed ✅') 
                           : t('lessons.start_lesson', 'Start Lesson')}
                       </button>
                     </div>
