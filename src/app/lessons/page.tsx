@@ -31,10 +31,12 @@ const SUBJECT_IDS: Record<string, string> = {
   '🧬 Biology': 'biology',
   '🎮 Game Development': 'game_dev',
   '🔒 Cybersecurity': 'cybersecurity',
+  '📚 English': 'english',
+  '🌍 Social Studies': 'social_studies',
 };
 
-const LESSONS_DATABASE: Record<string, Lesson[]> = {
-  'ai_ml': [
+const LESSONS_DATABASE: Record<string, Record<string, Lesson[]>> = {
+  'ai_ml': { 'class_6_8': [
     {
       id: 'ai_ml-basic',
       level: 'Basic',
@@ -1492,8 +1494,8 @@ const LESSONS_DATABASE: Record<string, Lesson[]> = {
           answer: 1
         }
       ]
-    }
-  ]
+  
+
 };
 
 export default function LessonsPage() {
@@ -1604,17 +1606,14 @@ export default function LessonsPage() {
 };
 
 const getFilteredLessons = (subjectId: string) => {
-  const allLessons = LESSONS_DATABASE[subjectId] || [];
   const levelGroup = getLevelGroup();
-  const levelMap: Record<string, string[]> = {
-    'class_6_8': ['Basic'],
-    'class_9_10': ['Basic', 'Intermediate'],
-    'class_11_12': ['Basic', 'Intermediate', 'Advanced'],
-    'engineering': ['Basic', 'Intermediate', 'Advanced'],
-  };
-  const allowed = levelMap[levelGroup] || ['Basic'];
-  return allLessons.filter(l => allowed.includes(l.level));
+  const subjectData = LESSONS_DATABASE[subjectId];
+  if (!subjectData) return [];
+  const techSubjects = ['ai_ml', 'web_dev', 'programming', 'game_dev', 'cybersecurity', 'data_science'];
+  const key = techSubjects.includes(subjectId) ? 'engineering' : levelGroup;
+  return (subjectData as any)[key] || [];
 };
+
 
 const getUnlockState = (lessons: Lesson[]) => {
   const completedCount = lessons.filter(l => completedLessons.includes(l.id)).length;
@@ -1704,26 +1703,23 @@ const handleLessonStart = (lesson: Lesson, subject: string) => {
   };
 
   const getSubjectProgress = (subjectName: string): number => {
-    const subKey = SUBJECT_IDS[subjectName];
-    if (!subKey || !LESSONS_DATABASE[subKey]) return 0;
-
-    const lessonsList = LESSONS_DATABASE[subKey];
-    const total = lessonsList.length;
-    const completed = lessonsList.filter(l => completedLessons.includes(l.id)).length;
-
-    return Math.round((completed / total) * 100);
-  };
+  const subKey = SUBJECT_IDS[subjectName];
+  if (!subKey) return 0;
+  const lessonsList = getFilteredLessons(subKey);
+  const total = lessonsList.length;
+  if (total === 0) return 0;
+  const completed = lessonsList.filter((l: Lesson) => completedLessons.includes(l.id)).length;
+  return Math.round((completed / total) * 100);
+};
 
   const getSubjectCompletedCount = (subjectName: string): string => {
-    const subKey = SUBJECT_IDS[subjectName];
-    if (!subKey || !LESSONS_DATABASE[subKey]) return '0/3';
-
-    const lessonsList = LESSONS_DATABASE[subKey];
-    const total = lessonsList.length;
-    const completed = lessonsList.filter(l => completedLessons.includes(l.id)).length;
-
-    return `${completed}/${total}`;
-  };
+  const subKey = SUBJECT_IDS[subjectName];
+  if (!subKey) return '0/0';
+  const lessonsList = getFilteredLessons(subKey);
+  const total = lessonsList.length;
+  const completed = lessonsList.filter((l: Lesson) => completedLessons.includes(l.id)).length;
+  return `${completed}/${total}`;
+};
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-10 transition-colors duration-300">
