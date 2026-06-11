@@ -1494,8 +1494,8 @@ const LESSONS_DATABASE: Record<string, Record<string, Lesson[]>> = {
           answer: 1
         }
       ]
-  
-
+    }
+  ]
 };
 
 export default function LessonsPage() {
