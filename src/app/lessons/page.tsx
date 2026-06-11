@@ -1735,7 +1735,20 @@ const handleLessonStart = (lesson: Lesson, subject: string) => {
 
       {/* Subjects Grid */}
       <div className="space-y-8">
-        {selectedSubjects.map((subjectName) => {
+        {selectedSubjects
+  .filter((subjectName) => {
+    const subKey = SUBJECT_IDS[subjectName];
+    const techSubjects = ['ai_ml', 'web_dev', 'programming', 'game_dev', 'cybersecurity', 'data_science'];
+    const lg = getLevelGroup();
+    if (techSubjects.includes(subKey) && lg !== 'engineering') return false;
+    return true;
+  })
+  .map((subjectName) => {
+    const subKey = SUBJECT_IDS[subjectName];
+    const lessonsList = getFilteredLessons(subKey);
+    const unlockedLessons = getUnlockState(lessonsList);
+    const progressPercent = getSubjectProgress(subjectName);
+    const completedCount = getSubjectCompletedCount(subjectName);
           const subKey = SUBJECT_IDS[subjectName];
           const lessonsList = getFilteredLessons(subKey);
     const unlockedLessons = getUnlockState(lessonsList);
