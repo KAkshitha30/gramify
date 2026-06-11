@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React from 'react';
 import { useStore } from '@/store';
@@ -6,9 +6,8 @@ import { useStore } from '@/store';
 export default function LanguageSwitcher() {
   const { language, setLanguage } = useStore();
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setLanguage(e.target.value as 'en' | 'hi' | 'te');
-  };
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) =>
+    setLanguage(e.target.value as 'en' | 'hi');
 
   return (
     <select
@@ -19,7 +18,6 @@ export default function LanguageSwitcher() {
     >
       <option value="en">EN</option>
       <option value="hi">HI</option>
-      <option value="te">తెలుగు</option>
     </select>
   );
 };

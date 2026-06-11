@@ -5,8 +5,8 @@ import { persist } from 'zustand/middleware';
 export interface AppState {
   theme: 'light' | 'dark';
   setTheme: (t: 'light' | 'dark') => void;
-  language: 'en' | 'hi' | 'te';
-  setLanguage: (l: 'en' | 'hi' | 'te') => void;
+  language: 'en' | 'hi';
+  setLanguage: (l: 'en' | 'hi') => void;
   xp: number;
   streak: number;
   setXP: (x: number) => void;
