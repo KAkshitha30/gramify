@@ -130,6 +130,8 @@ export default function AITutorPage() {
       console.warn("Gemini API key is missing.");
       return "";
     }
+    console.log("Gemini key exists:", !!apiKey);
+    console.log("Gemini key prefix:", apiKey?.slice(0, 10));
 
     const systemPrompt = `You are Guru AI, a knowledgeable, friendly, and bilingually supportive personal teacher for a student learning platform.
 The student is currently registered as a "${userRole}" and is learning: ${interests.join(', ')}.
@@ -138,7 +140,9 @@ IMPORTANT: Reply bilingually or in a mix of Hindi and English (Hinglish/Hindi sc
 Always format your response cleanly using Markdown, bold text for key terms, lists, and code blocks.`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+      console.log("Endpoint:", endpoint);
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -148,7 +152,13 @@ Always format your response cleanly using Markdown, bold text for key terms, lis
         })
       });
 
-      if (!response.ok) throw new Error("Gemini API error");
+      if (!response.ok) {
+        console.log("Status:", response.status);
+        console.log("Status Text:", response.statusText);
+        const errorBody = await response.text();
+        console.log(errorBody);
+        throw new Error("Gemini API error");
+      }
 
       const data = await response.json();
       return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -173,21 +183,23 @@ Always format your response cleanly using Markdown, bold text for key terms, lis
     setInputValue('');
     setIsTyping(true);
 
-    // Call OpenRouter
+    // Call Gemini
     const aiText = await fetchAIResponse(text, updatedMessages);
+    console.log("AI Response:", aiText);
     
     let finalAiText = aiText;
     let xpReward = 20;
 
     // Fallback logic if OpenRouter fails
     if (!finalAiText) {
+      console.log("Fallback triggered");
       const lowerText = text.toLowerCase();
       if (lowerText.includes('api')) {
         finalAiText = "An **API (Application Programming Interface)** allows two software applications to communicate with each other. 🌐\n\nसरल शब्दों में (In simple terms):\nयह एक रेस्टोरेंट के वेटर (waiter) की तरह है। आप (Client/Browser) टेबल पर बैठकर आर्डर देते हैं, वेटर (API) आपकी रिक्वेस्ट लेकर किचन (Server) में जाता है और वहाँ से लज़ीज़ खाना (Data) लाकर आपको परोस देता है।\n\n**Example**:\nWhen you check the weather on your phone, Google uses an Weather API to fetch live forecasts from a weather server and display it to you!";
       } else if (lowerText.includes('neural') || lowerText.includes('machine learning') || lowerText.includes('ai')) {
         finalAiText = "A **Neural Network** in AI & ML is a series of algorithms that endeavors to recognize underlying relationships in a set of data through a process that mimics the way the human brain operates. 🧠\n\nसरल भाषा में:\nयह कंप्यूटर का एक काल्पनिक 'दिमाग' है जिसमें कृत्रिम न्यूरॉन्स (artificial neurons) होते हैं। यह बार-बार गलतियाँ करके सीखता है, ठीक वैसे ही जैसे एक बच्चा चलना सीखता है।\n\nइसका उपयोग इमेजेज पहचानने (image recognition) और ट्रांसलेशन (language translation) में बड़े पैमाने पर होता है!";
       } else if (lowerText.includes('recursion')) {
-        finalAiText = "**Recursion** in Programming is a technique where a function calls itself directly or indirectly to solve a problem. 💻\n\nसरल भाषा में:\nजब एक कोड अपने आप को बार-बार तब तक कॉल करता है जब तक कि वह एक विशिष्ट अंत बिंदु (Base Case) पर न पहुँच जाए।\n\n**उदाहरण (Python Example)**:\n```python\ndef factorial(n):\n    if n == 1: # Base Case\n        return 1\n    return n * factorial(n - 1) # Recursive Call\n```\nWarning: Without a proper base case, recursion causes a 'Stack Overflow' error!";
+        finalAiText = "**Recursion** in Programming is a technique where a function calls itself directly or indirectly to solve a problem. 💻\n\nसरल भाषा में:\nजब एक कोड अपने आप को बार-बार तब तक कॉल करता है जब तक कि वह एक विशिष्ट अंत बिंदु (Base Case) पर न पहुँच जाए.\n\n**उदाहरण (Python Example)**:\n```python\ndef factorial(n):\n    if n == 1: # Base Case\n        return 1\n    return n * factorial(n - 1) # Recursive Call\n```\nWarning: Without a proper base case, recursion causes a 'Stack Overflow' error!";
       } else if (lowerText.includes('gravity') || lowerText.includes('physics')) {
         finalAiText = "**Gravity** in Physics is the fundamental force by which all things with mass or energy are brought toward one another. ☄️\n\nसरल शब्दों में:\nयह वह अदृश्य आकर्षण बल है जो हमें जमीन से बांधे रखता है और जिसके कारण पृथ्वी सूर्य के चारों ओर घूमती है।\n\n**Formula (Newton's Law)**:\n$$F = G \\frac{m_1 m_2}{r^2}$$\nजहाँ $F$ गुरुत्वाकर्षण बल है, $m_1, m_2$ दोनों वस्तुओं का द्रव्यमान (mass) हैं, और $r$ उनके बीच की दूरी है।";
       } else if (lowerText.includes('calculus') || lowerText.includes('limits') || lowerText.includes('math')) {
