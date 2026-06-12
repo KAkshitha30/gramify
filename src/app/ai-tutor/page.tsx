@@ -125,57 +125,35 @@ export default function AITutorPage() {
   }, [messages, isTyping]);
 
   const fetchAIResponse = async (question: string, history: Message[]): Promise<string> => {
-    console.log('API KEY EXISTS: ' + !!process.env.NEXT_PUBLIC_OPENROUTER_API_KEY);
-    const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (!apiKey) {
-      console.warn("OpenRouter API key is missing. Using local bilingually parsed templates.");
+      console.warn("Gemini API key is missing.");
       return "";
     }
 
-    const formattedHistory = history.map(msg => ({
-      role: msg.sender === 'ai' ? 'assistant' : 'user',
-      content: msg.text
-    }));
-
     const systemPrompt = `You are Guru AI, a knowledgeable, friendly, and bilingually supportive personal teacher for a student learning platform.
 The student is currently registered as a "${userRole}" and is learning: ${interests.join(', ')}.
-You must answer questions on ANY topic (science, math, history, coding, general knowledge, etc.) in detail, acting like a brilliant bilingually supportive teacher.
-IMPORTANT: You must answer the student's question directly, clearly, and completely, regardless of whether it is related to their registered subjects. Do not dodge the question, do not try to steer the conversation back to their registered subjects, and do not tell the user that you are only able to explain their selected subjects. Simply answer any question they ask directly.
-Please reply bilingually or in a mix of Hindi and English (Hinglish/Hindi script where appropriate) to make complex concepts simple and engaging for students.
-Always format your response cleanly using Markdown, bold text for key terms, lists, and code blocks for programming syntax.
-Provide detailed explanations like Google or ChatGPT would. Keep your tone highly encouraging and positive!`;
+You must answer questions on ANY topic in detail, acting like a brilliant bilingually supportive teacher.
+IMPORTANT: Reply bilingually or in a mix of Hindi and English (Hinglish/Hindi script where appropriate).
+Always format your response cleanly using Markdown, bold text for key terms, lists, and code blocks.`;
 
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-          'X-Title': 'Gramify Smart Learning'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'mistralai/mistral-7b-instruct:free',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            ...formattedHistory.slice(-6), // Send last 6 messages of context
-            { role: 'user', content: question }
-          ],
-          temperature: 0.7
+          contents: [{
+            parts: [{ text: `${systemPrompt}\n\nUser Question: ${question}` }]
+          }]
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error("Gemini API error");
 
       const data = await response.json();
-      const reply = data.choices?.[0]?.message?.content;
-      if (!reply) throw new Error("Empty reply from OpenRouter");
-
-      return reply;
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     } catch (err) {
-      console.error("OpenRouter query failed:", err);
+      console.error("Gemini query failed:", err);
       return "";
     }
   };
